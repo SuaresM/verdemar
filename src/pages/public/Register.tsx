@@ -6,7 +6,6 @@ import { z } from 'zod'
 import { toast } from 'sonner'
 import { ChevronRight, Store, ShoppingBag, ArrowLeft } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
-import { createProfile, createBuyer, createSupplier } from '../../services/supabase'
 
 const DAYS = [
   { value: 'monday', label: 'Seg' },
@@ -82,30 +81,38 @@ export default function Register() {
       const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
+        options: {
+          data: {
+            role: 'buyer',
+            full_name: data.full_name,
+            phone: data.phone.replace(/\D/g, ''),
+            registration_data: JSON.stringify({
+              company_name: data.company_name,
+              cnpj: data.cnpj.replace(/\D/g, ''),
+              state_registration: data.state_registration || null,
+              email: data.email,
+              address_street: data.address_street,
+              address_number: data.address_number,
+              address_complement: data.address_complement || null,
+              address_neighborhood: data.address_neighborhood,
+              address_city: data.address_city,
+              address_state: data.address_state,
+              address_zip: data.address_zip.replace(/\D/g, ''),
+              business_hours: data.business_hours,
+              contact_phone: data.contact_phone.replace(/\D/g, ''),
+            }),
+          },
+        },
       })
       if (error) throw error
-      const userId = authData.user!.id
 
-      await createProfile({ id: userId, role: 'buyer', full_name: data.full_name, phone: data.phone })
-      await createBuyer({
-        id: userId,
-        company_name: data.company_name,
-        cnpj: data.cnpj.replace(/\D/g, ''),
-        state_registration: data.state_registration,
-        email: data.email,
-        address_street: data.address_street,
-        address_number: data.address_number,
-        address_complement: data.address_complement,
-        address_neighborhood: data.address_neighborhood,
-        address_city: data.address_city,
-        address_state: data.address_state,
-        address_zip: data.address_zip.replace(/\D/g, ''),
-        business_hours: data.business_hours,
-        contact_phone: data.contact_phone.replace(/\D/g, ''),
-      })
-
-      toast.success('Cadastro realizado com sucesso!')
-      navigate('/')
+      if (authData.session) {
+        toast.success('Cadastro realizado com sucesso!')
+        navigate('/')
+      } else {
+        toast.success('Conta criada! Verifique seu e-mail para confirmar o cadastro.')
+        navigate('/login')
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao cadastrar')
     } finally {
@@ -123,30 +130,35 @@ export default function Register() {
       const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
+        options: {
+          data: {
+            role: 'supplier',
+            full_name: data.full_name,
+            phone: data.phone.replace(/\D/g, ''),
+            registration_data: JSON.stringify({
+              store_name: data.store_name,
+              description: data.description || null,
+              whatsapp: data.whatsapp.replace(/\D/g, ''),
+              min_order_value: data.min_order_value || null,
+              min_order_quantity: data.min_order_quantity || null,
+              delivery_days: deliveryDays,
+              delivery_hours_start: data.delivery_hours_start,
+              delivery_hours_end: data.delivery_hours_end,
+              address_city: data.address_city,
+              address_state: data.address_state,
+            }),
+          },
+        },
       })
       if (error) throw error
-      const userId = authData.user!.id
 
-      await createProfile({ id: userId, role: 'supplier', full_name: data.full_name, phone: data.phone })
-      await createSupplier({
-        id: userId,
-        store_name: data.store_name,
-        description: data.description,
-        logo_url: undefined,
-        banner_url: undefined,
-        whatsapp: data.whatsapp.replace(/\D/g, ''),
-        min_order_value: data.min_order_value ? parseFloat(data.min_order_value) : undefined,
-        min_order_quantity: data.min_order_quantity ? parseInt(data.min_order_quantity) : undefined,
-        delivery_days: deliveryDays,
-        delivery_hours_start: data.delivery_hours_start,
-        delivery_hours_end: data.delivery_hours_end,
-        address_city: data.address_city,
-        address_state: data.address_state,
-        is_active: true,
-      })
-
-      toast.success('Cadastro realizado com sucesso!')
-      navigate('/supplier/dashboard')
+      if (authData.session) {
+        toast.success('Cadastro realizado com sucesso!')
+        navigate('/supplier/dashboard')
+      } else {
+        toast.success('Conta criada! Verifique seu e-mail para confirmar o cadastro.')
+        navigate('/login')
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao cadastrar')
     } finally {
