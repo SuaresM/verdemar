@@ -110,8 +110,15 @@ export default function ProductForm() {
       }
       navigate('/supplier/products')
     } catch (err) {
-      toast.error('Erro ao salvar produto')
-      console.error(err)
+      const message = err instanceof Error ? err.message : 'Erro desconhecido'
+      if (message.includes('storage') || message.includes('bucket')) {
+        toast.error('Erro ao enviar imagem. Tente sem foto ou tente novamente.')
+      } else if (message.includes('violates row-level security')) {
+        toast.error('Sem permissao para salvar produto. Faca login novamente.')
+      } else {
+        toast.error('Erro ao salvar produto: ' + message)
+      }
+      console.error('Erro ao salvar produto:', err)
     } finally {
       setSaving(false)
     }
