@@ -24,7 +24,8 @@ const SupplierOrders = lazy(() => import('./pages/supplier/Orders'))
 const StoreSettings = lazy(() => import('./pages/supplier/StoreSettings'))
 
 function BuyerLayout() {
-  const { profile } = useAuthStore()
+  const { profile, isLoading } = useAuthStore()
+  if (isLoading) return <PageLoader />
   if (!profile) return <Navigate to="/login" replace />
   if (profile.role !== 'buyer') return <Navigate to="/supplier/dashboard" replace />
   return (
@@ -38,7 +39,8 @@ function BuyerLayout() {
 }
 
 function SupplierLayout() {
-  const { profile } = useAuthStore()
+  const { profile, isLoading } = useAuthStore()
+  if (isLoading) return <PageLoader />
   if (!profile) return <Navigate to="/login" replace />
   if (profile.role !== 'supplier') return <Navigate to="/" replace />
   return (

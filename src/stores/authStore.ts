@@ -31,6 +31,11 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
       await get().loadProfile()
+      if (!get().profile) {
+        await supabase.auth.signOut()
+        set({ user: null, isLoading: false })
+        throw new Error('Perfil nao encontrado. Por favor, cadastre-se novamente.')
+      }
     } finally {
       set({ isLoading: false })
     }
