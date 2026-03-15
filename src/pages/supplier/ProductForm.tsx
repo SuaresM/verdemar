@@ -12,6 +12,18 @@ import { Header } from '../../components/layout/Header'
 import { PageLoader } from '../../components/shared/LoadingSpinner'
 import { calculatePricePerKg, formatCurrency } from '../../utils'
 
+function parseNum(val: string | undefined | null): number | null {
+  if (!val || val.trim() === '') return null
+  const n = parseFloat(val)
+  return isNaN(n) ? null : n
+}
+
+function parseInt2(val: string | undefined | null): number | null {
+  if (!val || val.trim() === '') return null
+  const n = parseInt(val, 10)
+  return isNaN(n) ? null : n
+}
+
 const schema = z.object({
   name: z.string().min(2, 'Nome obrigatório'),
   description: z.string().optional(),
@@ -23,6 +35,7 @@ const schema = z.object({
   price_per_kg: z.string().optional(),
   price_per_unit: z.string().optional(),
   unit_description: z.string().optional(),
+  stock_quantity: z.string().optional(),
   is_available: z.boolean(),
   is_featured: z.boolean(),
 })
@@ -40,7 +53,7 @@ export default function ProductForm() {
   const [imagePreview, setImagePreview] = useState<string>('')
   const [existingImageUrl, setExistingImageUrl] = useState<string>('')
 
-  const { register, handleSubmit, control, watch, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, control, watch, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       category: 'fruit',
@@ -64,9 +77,24 @@ export default function ProductForm() {
     getProductById(id).then((product) => {
       if (!product) return
       setExistingImageUrl(product.image_url || '')
+      reset({
+        name: product.name,
+        description: product.description || '',
+        category: product.category as FormData['category'],
+        sale_unit: product.sale_unit as FormData['sale_unit'],
+        box_weight_kg: product.box_weight_kg != null ? String(product.box_weight_kg) : '',
+        box_unit_quantity: product.box_unit_quantity != null ? String(product.box_unit_quantity) : '',
+        box_price: product.box_price != null ? String(product.box_price) : '',
+        price_per_kg: product.price_per_kg != null ? String(product.price_per_kg) : '',
+        price_per_unit: product.price_per_unit != null ? String(product.price_per_unit) : '',
+        unit_description: product.unit_description || '',
+        stock_quantity: product.stock_quantity != null ? String(product.stock_quantity) : '',
+        is_available: product.is_available,
+        is_featured: product.is_featured,
+      })
       setLoading(false)
     })
-  }, [id, isEdit])
+  }, [id, isEdit, reset])
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -74,6 +102,11 @@ export default function ProductForm() {
     setImageFile(file)
     setImagePreview(URL.createObjectURL(file))
   }
+
+  const stockLabel =
+    saleUnit === 'box' ? 'Qtd. caixas em estoque' :
+    saleUnit === 'kg' ? 'Quantidade em estoque (kg)' :
+    'Qtd. unidades em estoque'
 
   const onSubmit = async (data: FormData) => {
     if (!supplier) return
@@ -84,28 +117,40 @@ export default function ProductForm() {
         image_url = await uploadProductImage(imageFile, supplier.id)
       }
 
-      const productData = {
+      const productData: Record<string, unknown> = {
         supplier_id: supplier.id,
         name: data.name,
-        description: data.description,
+        description: data.description || null,
         category: data.category,
-        image_url: image_url || undefined,
+        image_url: image_url || null,
         sale_unit: data.sale_unit,
-        box_weight_kg: data.box_weight_kg ? parseFloat(data.box_weight_kg) : undefined,
-        box_unit_quantity: data.box_unit_quantity ? parseInt(data.box_unit_quantity) : undefined,
-        box_price: data.box_price ? parseFloat(data.box_price) : undefined,
-        price_per_kg: data.price_per_kg ? parseFloat(data.price_per_kg) : undefined,
-        price_per_unit: data.price_per_unit ? parseFloat(data.price_per_unit) : undefined,
-        unit_description: data.unit_description,
+        box_weight_kg: null,
+        box_unit_quantity: null,
+        box_price: null,
+        price_per_kg: null,
+        price_per_unit: null,
+        unit_description: null,
+        stock_quantity: parseNum(data.stock_quantity),
         is_available: data.is_available,
         is_featured: data.is_featured,
       }
 
+      if (data.sale_unit === 'box') {
+        productData.box_weight_kg = parseNum(data.box_weight_kg)
+        productData.box_unit_quantity = parseInt2(data.box_unit_quantity)
+        productData.box_price = parseNum(data.box_price)
+      } else if (data.sale_unit === 'kg') {
+        productData.price_per_kg = parseNum(data.price_per_kg)
+      } else if (data.sale_unit === 'unit') {
+        productData.price_per_unit = parseNum(data.price_per_unit)
+        productData.unit_description = data.unit_description || null
+      }
+
       if (isEdit && id) {
-        await updateProduct(id, productData)
+        await updateProduct(id, productData as any)
         toast.success('Produto atualizado!')
       } else {
-        await createProduct(productData)
+        await createProduct(productData as any)
         toast.success('Produto criado!')
       }
       navigate('/supplier/products')
@@ -167,10 +212,10 @@ export default function ProductForm() {
           <div>
             <label className="block text-sm font-semibold text-gray-600 mb-1">Categoria *</label>
             <select {...register('category')} className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
-              <option value="fruit">🍎 Fruta</option>
-              <option value="vegetable">🥕 Legume</option>
-              <option value="greens">🥬 Verdura</option>
-              <option value="other">🌾 Outro</option>
+              <option value="fruit">Fruta</option>
+              <option value="vegetable">Legume</option>
+              <option value="greens">Verdura</option>
+              <option value="other">Outro</option>
             </select>
           </div>
           <div>
@@ -181,15 +226,15 @@ export default function ProductForm() {
 
         {/* Pricing */}
         <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
-          <p className="font-bold text-gray-700">Preço e Unidade</p>
+          <p className="font-bold text-gray-700">Preco e Unidade</p>
 
           <div>
             <label className="block text-sm font-semibold text-gray-600 mb-2">Unidade de venda *</label>
             <div className="grid grid-cols-3 gap-2">
               {([
-                { value: 'box', label: '📦 Por Caixa' },
-                { value: 'kg', label: '⚖️ Por Kg' },
-                { value: 'unit', label: '🔢 Por Unidade' },
+                { value: 'box', label: 'Por Caixa' },
+                { value: 'kg', label: 'Por Kg' },
+                { value: 'unit', label: 'Por Unidade' },
               ] as const).map((opt) => (
                 <label key={opt.value} className="cursor-pointer">
                   <input {...register('sale_unit')} type="radio" value={opt.value} className="sr-only" />
@@ -211,17 +256,17 @@ export default function ProductForm() {
                   <input {...register('box_weight_kg')} type="number" step="0.001" placeholder="Ex: 20" className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Qtd. unidades</label>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Qtd. unidades na caixa</label>
                   <input {...register('box_unit_quantity')} type="number" placeholder="Ex: 24" className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Preço da caixa (R$) *</label>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Preco da caixa (R$) *</label>
                 <input {...register('box_price')} type="number" step="0.01" placeholder="Ex: 45.00" className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
               </div>
               {pricePerKgPreview !== null && pricePerKgPreview > 0 && (
                 <div className="bg-primary/5 rounded-xl p-3">
-                  <p className="text-xs text-gray-500">Preço por kg (calculado)</p>
+                  <p className="text-xs text-gray-500">Preco por kg (calculado)</p>
                   <p className="text-lg font-bold text-primary">{formatCurrency(pricePerKgPreview)}/kg</p>
                 </div>
               )}
@@ -230,7 +275,7 @@ export default function ProductForm() {
 
           {saleUnit === 'kg' && (
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Preço por kg (R$) *</label>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Preco por kg (R$) *</label>
               <input {...register('price_per_kg')} type="number" step="0.01" placeholder="Ex: 3.50" className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
             </div>
           )}
@@ -238,15 +283,21 @@ export default function ProductForm() {
           {saleUnit === 'unit' && (
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Preço por unidade (R$) *</label>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Preco por unidade (R$) *</label>
                 <input {...register('price_per_unit')} type="number" step="0.01" placeholder="Ex: 2.00" className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Descrição da unidade</label>
-                <input {...register('unit_description')} placeholder="Ex: maço, dúzia, pé" className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Descricao da unidade</label>
+                <input {...register('unit_description')} placeholder="Ex: maco, duzia, pe" className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
               </div>
             </div>
           )}
+
+          {/* Stock quantity - visible for all sale units */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">{stockLabel}</label>
+            <input {...register('stock_quantity')} type="number" step="0.001" placeholder="Ex: 100" className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          </div>
         </div>
 
         {/* Toggles */}
@@ -257,8 +308,8 @@ export default function ProductForm() {
             render={({ field }) => (
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-semibold text-gray-800">Disponível</p>
-                  <p className="text-xs text-gray-500">Produto visível aos compradores</p>
+                  <p className="font-semibold text-gray-800">Disponivel</p>
+                  <p className="text-xs text-gray-500">Produto visivel aos compradores</p>
                 </div>
                 <button
                   type="button"
@@ -277,7 +328,7 @@ export default function ProductForm() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-semibold text-gray-800">Destaque</p>
-                  <p className="text-xs text-gray-500">Aparece na seção "Mais Vendidos"</p>
+                  <p className="text-xs text-gray-500">Aparece na secao "Mais Vendidos"</p>
                 </div>
                 <button
                   type="button"
@@ -298,7 +349,7 @@ export default function ProductForm() {
         >
           {saving ? (
             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          ) : isEdit ? 'Salvar Alterações' : 'Criar Produto'}
+          ) : isEdit ? 'Salvar Alteracoes' : 'Criar Produto'}
         </button>
       </form>
     </div>

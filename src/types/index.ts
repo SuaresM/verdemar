@@ -63,6 +63,7 @@ export interface Product {
   unit_description?: string
   is_available: boolean
   is_featured: boolean
+  stock_quantity?: number
   total_sold: number
   created_at?: string
   updated_at?: string
