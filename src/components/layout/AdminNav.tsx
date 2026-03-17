@@ -1,7 +1,18 @@
-import { NavLink } from 'react-router-dom'
-import { BarChart2, Store, Package, ClipboardList } from 'lucide-react'
+import { NavLink, useNavigate } from 'react-router-dom'
+import { BarChart2, Store, Package, ClipboardList, LogOut } from 'lucide-react'
+import { useAuthStore } from '../../stores/authStore'
+import { toast } from 'sonner'
 
 export function AdminNav() {
+  const navigate = useNavigate()
+  const { signOut } = useAuthStore()
+
+  const handleSignOut = async () => {
+    await signOut()
+    navigate('/login')
+    toast.success('Até logo!')
+  }
+
   const navItems = [
     { to: '/admin/dashboard', icon: BarChart2, label: 'Painel' },
     { to: '/admin/suppliers', icon: Store, label: 'Fornecedores' },
@@ -26,6 +37,13 @@ export function AdminNav() {
             <span className="text-[10px] font-semibold mt-0.5">{label}</span>
           </NavLink>
         ))}
+        <button
+          onClick={handleSignOut}
+          className="flex flex-col items-center justify-center py-2 px-4 flex-1 min-h-[56px] text-red-400 hover:text-red-600 transition-colors"
+        >
+          <LogOut size={22} strokeWidth={2} />
+          <span className="text-[10px] font-semibold mt-0.5">Sair</span>
+        </button>
       </div>
     </nav>
   )

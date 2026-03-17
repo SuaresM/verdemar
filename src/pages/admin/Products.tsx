@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
 import { getAllProducts, updateProduct, deleteProduct } from '../../services/supabase'
 import { Header } from '../../components/layout/Header'
@@ -37,6 +37,20 @@ export default function AdminProducts() {
   const filtered = category
     ? products.filter((p) => p.category === category)
     : products
+
+  // Group products by supplier
+  const grouped = useMemo(() => {
+    const map = new Map<string, { name: string; products: Product[] }>()
+    for (const p of filtered) {
+      const supplierId = p.supplier_id
+      const supplierName = p.supplier?.store_name || 'Fornecedor desconhecido'
+      if (!map.has(supplierId)) {
+        map.set(supplierId, { name: supplierName, products: [] })
+      }
+      map.get(supplierId)!.products.push(p)
+    }
+    return Array.from(map.entries()).sort((a, b) => a[1].name.localeCompare(b[1].name))
+  }, [filtered])
 
   const handleToggle = async (product: Product) => {
     try {
@@ -85,53 +99,66 @@ export default function AdminProducts() {
         {filtered.length === 0 ? (
           <EmptyState title="Nenhum produto" description="Nenhum produto encontrado" />
         ) : (
-          <div className="space-y-3">
-            {filtered.map((product) => (
-              <div key={product.id} className="bg-white rounded-2xl shadow-sm p-4">
-                <div className="flex items-start gap-3 mb-2">
-                  {product.image_url ? (
-                    <img src={product.image_url} alt="" className="w-14 h-14 rounded-xl object-cover" />
-                  ) : (
-                    <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 text-xs">
-                      Sem foto
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-gray-800 truncate">{product.name}</p>
-                    <p className="text-xs text-gray-500">
-                      {product.supplier?.store_name || 'Fornecedor desconhecido'}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-sm font-bold text-primary">
-                        {formatCurrency(getProductPrice(product))}
-                        {product.sale_unit === 'kg' ? '/kg' : product.sale_unit === 'unit' ? '/un' : '/cx'}
-                      </span>
-                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
-                        product.is_available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                      }`}>
-                        {product.is_available ? 'Ativo' : 'Inativo'}
-                      </span>
-                    </div>
+          <div className="space-y-6">
+            {grouped.map(([supplierId, group]) => (
+              <div key={supplierId}>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                    {group.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-800 text-sm">{group.name}</p>
+                    <p className="text-[10px] text-gray-500">{group.products.length} produto(s)</p>
                   </div>
                 </div>
 
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleToggle(product)}
-                    className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-colors ${
-                      product.is_available
-                        ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                        : 'bg-green-100 text-green-700 hover:bg-green-200'
-                    }`}
-                  >
-                    {product.is_available ? 'Desativar' : 'Ativar'}
-                  </button>
-                  <button
-                    onClick={() => handleDelete(product)}
-                    className="flex-1 py-2 rounded-xl text-xs font-semibold bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
-                  >
-                    Deletar
-                  </button>
+                <div className="space-y-3 pl-2 border-l-2 border-primary/20">
+                  {group.products.map((product) => (
+                    <div key={product.id} className="bg-white rounded-2xl shadow-sm p-4">
+                      <div className="flex items-start gap-3 mb-2">
+                        {product.image_url ? (
+                          <img src={product.image_url} alt="" className="w-14 h-14 rounded-xl object-cover" />
+                        ) : (
+                          <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 text-xs">
+                            Sem foto
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-gray-800 truncate">{product.name}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-sm font-bold text-primary">
+                              {formatCurrency(getProductPrice(product))}
+                              {product.sale_unit === 'kg' ? '/kg' : product.sale_unit === 'unit' ? '/un' : '/cx'}
+                            </span>
+                            <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
+                              product.is_available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                            }`}>
+                              {product.is_available ? 'Ativo' : 'Inativo'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleToggle(product)}
+                          className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-colors ${
+                            product.is_available
+                              ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                              : 'bg-green-100 text-green-700 hover:bg-green-200'
+                          }`}
+                        >
+                          {product.is_available ? 'Desativar' : 'Ativar'}
+                        </button>
+                        <button
+                          onClick={() => handleDelete(product)}
+                          className="flex-1 py-2 rounded-xl text-xs font-semibold bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                        >
+                          Deletar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}
