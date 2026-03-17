@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useCallback, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Search as SearchIcon, X } from 'lucide-react'
 import { searchProducts, searchSuppliers } from '../../services/supabase'
 import type { Product, Supplier } from '../../types'
@@ -20,6 +20,7 @@ type TabType = 'products' | 'suppliers'
 
 export default function Search() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [query, setQuery] = useState('')
   const [tab, setTab] = useState<TabType>('products')
   const [category, setCategory] = useState('')
@@ -28,13 +29,29 @@ export default function Search() {
   const [loading, setLoading] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
 
+  useEffect(() => {
+    const catParam = searchParams.get('category')
+    if (catParam) {
+      setCategory(catParam)
+      setLoading(true)
+      setHasSearched(true)
+      Promise.all([
+        searchProducts(undefined, catParam),
+        searchSuppliers(''),
+      ]).then(([prods, sups]) => {
+        setProducts(prods)
+        setSuppliers(sups)
+      }).finally(() => setLoading(false))
+    }
+  }, [searchParams])
+
   const handleSearch = useCallback(async (q: string) => {
-    if (!q.trim()) return
+    if (!q.trim() && !category) return
     setLoading(true)
     setHasSearched(true)
     try {
       const [prods, sups] = await Promise.all([
-        searchProducts(q, category || undefined),
+        searchProducts(q.trim() || undefined, category || undefined),
         searchSuppliers(q),
       ])
       setProducts(prods)

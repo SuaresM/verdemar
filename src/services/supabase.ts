@@ -149,12 +149,12 @@ export async function getFeaturedProducts(): Promise<Product[]> {
   return data
 }
 
-export async function searchProducts(query: string, category?: string): Promise<Product[]> {
+export async function searchProducts(query?: string, category?: string): Promise<Product[]> {
   let q = supabase
     .from('products')
     .select('*, supplier:suppliers(*)')
     .eq('is_available', true)
-    .ilike('name', `%${query}%`)
+  if (query) q = q.ilike('name', `%${query}%`)
   if (category) q = q.eq('category', category)
   const { data, error } = await q
   if (error) return []
@@ -228,6 +228,96 @@ export async function updateOrderStatus(orderId: string, status: string) {
     .update({ status, updated_at: new Date().toISOString() })
     .eq('id', orderId)
   if (error) throw error
+}
+
+// ---- ADMIN ----
+export async function getAllSuppliers(): Promise<(Supplier & { profile?: Profile })[]> {
+  const { data, error } = await supabase
+    .from('suppliers')
+    .select('*, profile:profiles(*)')
+    .order('created_at', { ascending: false })
+  if (error) return []
+  return data
+}
+
+export async function getAllProducts(): Promise<Product[]> {
+  const { data, error } = await supabase
+    .from('products')
+    .select('*, supplier:suppliers(*)')
+    .order('created_at', { ascending: false })
+  if (error) return []
+  return data
+}
+
+export async function getAllOrders(): Promise<Order[]> {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*, buyer:buyers(*), supplier:suppliers(*), items:order_items(*)')
+    .order('created_at', { ascending: false })
+  if (error) return []
+  return data
+}
+
+export async function deactivateSupplier(id: string) {
+  const { error } = await supabase
+    .from('suppliers')
+    .update({ is_active: false })
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function activateSupplier(id: string) {
+  const { error } = await supabase
+    .from('suppliers')
+    .update({ is_active: true })
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteSupplierAdmin(id: string) {
+  const { error: prodErr } = await supabase
+    .from('products')
+    .delete()
+    .eq('supplier_id', id)
+  if (prodErr) throw prodErr
+
+  const { error } = await supabase
+    .from('suppliers')
+    .delete()
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function getAdminDashboard() {
+  const { count: suppliersCount } = await supabase
+    .from('suppliers')
+    .select('*', { count: 'exact', head: true })
+
+  const { count: buyersCount } = await supabase
+    .from('buyers')
+    .select('*', { count: 'exact', head: true })
+
+  const { count: productsCount } = await supabase
+    .from('products')
+    .select('*', { count: 'exact', head: true })
+
+  const { count: ordersCount } = await supabase
+    .from('orders')
+    .select('*', { count: 'exact', head: true })
+
+  const { data: recentOrders } = await supabase
+    .from('orders')
+    .select('*, buyer:buyers(*), supplier:suppliers(*)')
+    .order('created_at', { ascending: false })
+    .limit(10)
+
+  return {
+    suppliersCount: suppliersCount || 0,
+    buyersCount: buyersCount || 0,
+    productsCount: productsCount || 0,
+    ordersCount: ordersCount || 0,
+    recentOrders: recentOrders || [],
+  }
 }
 
 export async function getSupplierDashboard(supplierId: string) {

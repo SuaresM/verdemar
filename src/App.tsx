@@ -6,6 +6,7 @@ import { supabase } from './lib/supabaseClient'
 import { PageLoader } from './components/shared/LoadingSpinner'
 import { BuyerNav } from './components/layout/BuyerNav'
 import { SupplierNav } from './components/layout/SupplierNav'
+import { AdminNav } from './components/layout/AdminNav'
 
 // Lazy-loaded pages
 const Login = lazy(() => import('./pages/public/Login'))
@@ -22,11 +23,16 @@ const Products = lazy(() => import('./pages/supplier/Products'))
 const ProductForm = lazy(() => import('./pages/supplier/ProductForm'))
 const SupplierOrders = lazy(() => import('./pages/supplier/Orders'))
 const StoreSettings = lazy(() => import('./pages/supplier/StoreSettings'))
+const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'))
+const AdminSuppliers = lazy(() => import('./pages/admin/Suppliers'))
+const AdminProducts = lazy(() => import('./pages/admin/Products'))
+const AdminOrders = lazy(() => import('./pages/admin/Orders'))
 
 function BuyerLayout() {
   const { profile, isLoading } = useAuthStore()
   if (isLoading) return <PageLoader />
   if (!profile) return <Navigate to="/login" replace />
+  if (profile.role === 'admin') return <Navigate to="/admin/dashboard" replace />
   if (profile.role !== 'buyer') return <Navigate to="/supplier/dashboard" replace />
   return (
     <div className="flex flex-col min-h-screen max-w-lg mx-auto relative">
@@ -53,9 +59,25 @@ function SupplierLayout() {
   )
 }
 
+function AdminLayout() {
+  const { profile, isLoading } = useAuthStore()
+  if (isLoading) return <PageLoader />
+  if (!profile) return <Navigate to="/login" replace />
+  if (profile.role !== 'admin') return <Navigate to="/" replace />
+  return (
+    <div className="flex flex-col min-h-screen max-w-lg mx-auto relative">
+      <div className="flex-1 overflow-y-auto pb-16">
+        <Outlet />
+      </div>
+      <AdminNav />
+    </div>
+  )
+}
+
 function PublicRoute() {
   const { profile, isLoading } = useAuthStore()
   if (isLoading) return <PageLoader />
+  if (profile?.role === 'admin') return <Navigate to="/admin/dashboard" replace />
   if (profile?.role === 'buyer') return <Navigate to="/" replace />
   if (profile?.role === 'supplier') return <Navigate to="/supplier/dashboard" replace />
   return (
@@ -94,6 +116,13 @@ function AppRoutes() {
           <Route path="products/:id/edit" element={<ProductForm />} />
           <Route path="orders" element={<SupplierOrders />} />
           <Route path="settings" element={<StoreSettings />} />
+        </Route>
+
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="suppliers" element={<AdminSuppliers />} />
+          <Route path="products" element={<AdminProducts />} />
+          <Route path="orders" element={<AdminOrders />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/login" replace />} />

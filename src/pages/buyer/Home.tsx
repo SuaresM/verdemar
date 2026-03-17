@@ -22,7 +22,6 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [products, setProducts] = useState<Product[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
-  const [selectedCategory, setSelectedCategory] = useState('all')
   const [refreshing, setRefreshing] = useState(false)
 
   const load = useCallback(async () => {
@@ -41,10 +40,13 @@ export default function Home() {
     setRefreshing(false)
   }
 
-  const filteredProducts =
-    selectedCategory === 'all'
-      ? products
-      : products.filter((p) => p.category === selectedCategory)
+  const handleCategoryClick = (value: string) => {
+    if (value === 'all') {
+      navigate('/search')
+    } else {
+      navigate('/search?category=' + value)
+    }
+  }
 
   if (loading) return <PageLoader />
 
@@ -88,12 +90,8 @@ export default function Home() {
           {CATEGORIES.map((cat) => (
             <button
               key={cat.value}
-              onClick={() => setSelectedCategory(cat.value)}
-              className={`flex-shrink-0 flex flex-col items-center gap-1 px-4 py-3 rounded-2xl transition-colors ${
-                selectedCategory === cat.value
-                  ? 'bg-primary text-white'
-                  : 'bg-white text-gray-600 shadow-sm'
-              }`}
+              onClick={() => handleCategoryClick(cat.value)}
+              className="flex-shrink-0 flex flex-col items-center gap-1 px-4 py-3 rounded-2xl transition-colors bg-white text-gray-600 shadow-sm hover:bg-primary/5"
             >
               <span className="text-xl">{cat.emoji}</span>
               <span className="text-xs font-semibold whitespace-nowrap">{cat.label}</span>
@@ -103,11 +101,11 @@ export default function Home() {
       </div>
 
       {/* Featured Products */}
-      {filteredProducts.length > 0 && (
+      {products.length > 0 && (
         <div className="px-4 mb-6">
           <h2 className="font-bold text-gray-900 mb-3">Mais Vendidos</h2>
           <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
-            {filteredProducts.map((product) => (
+            {products.map((product) => (
               <div key={product.id} className="flex-shrink-0 w-44">
                 <ProductCard
                   product={product}
@@ -132,7 +130,7 @@ export default function Home() {
         </div>
       )}
 
-      {filteredProducts.length === 0 && suppliers.length === 0 && (
+      {products.length === 0 && suppliers.length === 0 && (
         <div className="px-4 py-12 text-center">
           <div className="text-4xl mb-3">🌱</div>
           <p className="font-bold text-gray-600">Nenhum produto disponível</p>

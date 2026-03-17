@@ -1,4 +1,4 @@
-export type UserRole = 'buyer' | 'supplier'
+export type UserRole = 'buyer' | 'supplier' | 'admin'
 export type SaleUnit = 'box' | 'kg' | 'unit'
 export type OrderStatus = 'pending' | 'confirmed' | 'in_delivery' | 'delivered' | 'cancelled'
 export type ProductCategory = 'fruit' | 'vegetable' | 'greens' | 'other'
