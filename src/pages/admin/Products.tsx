@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { getAllProducts, updateProduct, deleteProduct } from '../../services/supabase'
 import { Header } from '../../components/layout/Header'
 import { PageLoader } from '../../components/shared/LoadingSpinner'
@@ -25,6 +26,7 @@ export default function AdminProducts() {
   const [loading, setLoading] = useState(true)
   const [products, setProducts] = useState<Product[]>([])
   const [category, setCategory] = useState('')
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
 
   const load = async () => {
     const data = await getAllProducts()
@@ -38,7 +40,6 @@ export default function AdminProducts() {
     ? products.filter((p) => p.category === category)
     : products
 
-  // Group products by supplier
   const grouped = useMemo(() => {
     const map = new Map<string, { name: string; products: Product[] }>()
     for (const p of filtered) {
@@ -51,6 +52,28 @@ export default function AdminProducts() {
     }
     return Array.from(map.entries()).sort((a, b) => a[1].name.localeCompare(b[1].name))
   }, [filtered])
+
+  const toggleCollapse = (supplierId: string) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev)
+      if (next.has(supplierId)) {
+        next.delete(supplierId)
+      } else {
+        next.add(supplierId)
+      }
+      return next
+    })
+  }
+
+  const collapseAll = () => {
+    setCollapsed(new Set(grouped.map(([id]) => id)))
+  }
+
+  const expandAll = () => {
+    setCollapsed(new Set())
+  }
+
+  const allCollapsed = grouped.length > 0 && collapsed.size === grouped.length
 
   const handleToggle = async (product: Product) => {
     try {
@@ -94,74 +117,97 @@ export default function AdminProducts() {
           ))}
         </div>
 
-        <p className="text-xs text-gray-500">{filtered.length} produto(s)</p>
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-gray-500">{filtered.length} produto(s)</p>
+          {grouped.length > 1 && (
+            <button
+              onClick={allCollapsed ? expandAll : collapseAll}
+              className="text-xs text-primary font-semibold"
+            >
+              {allCollapsed ? 'Expandir todos' : 'Recolher todos'}
+            </button>
+          )}
+        </div>
 
         {filtered.length === 0 ? (
           <EmptyState title="Nenhum produto" description="Nenhum produto encontrado" />
         ) : (
-          <div className="space-y-6">
-            {grouped.map(([supplierId, group]) => (
-              <div key={supplierId}>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-                    {group.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-800 text-sm">{group.name}</p>
-                    <p className="text-[10px] text-gray-500">{group.products.length} produto(s)</p>
-                  </div>
-                </div>
+          <div className="space-y-4">
+            {grouped.map(([supplierId, group]) => {
+              const isCollapsed = collapsed.has(supplierId)
+              return (
+                <div key={supplierId} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                  <button
+                    onClick={() => toggleCollapse(supplierId)}
+                    className="w-full flex items-center gap-3 p-4 text-left"
+                  >
+                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
+                      {group.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-gray-800 text-sm truncate">{group.name}</p>
+                      <p className="text-[10px] text-gray-500">{group.products.length} produto(s)</p>
+                    </div>
+                    {isCollapsed ? (
+                      <ChevronRight size={18} className="text-gray-400 flex-shrink-0" />
+                    ) : (
+                      <ChevronDown size={18} className="text-gray-400 flex-shrink-0" />
+                    )}
+                  </button>
 
-                <div className="space-y-3 pl-2 border-l-2 border-primary/20">
-                  {group.products.map((product) => (
-                    <div key={product.id} className="bg-white rounded-2xl shadow-sm p-4">
-                      <div className="flex items-start gap-3 mb-2">
-                        {product.image_url ? (
-                          <img src={product.image_url} alt="" className="w-14 h-14 rounded-xl object-cover" />
-                        ) : (
-                          <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 text-xs">
-                            Sem foto
+                  {!isCollapsed && (
+                    <div className="px-4 pb-4 space-y-3">
+                      {group.products.map((product) => (
+                        <div key={product.id} className="bg-gray-50 rounded-xl p-3">
+                          <div className="flex items-start gap-3 mb-2">
+                            {product.image_url ? (
+                              <img src={product.image_url} alt="" className="w-12 h-12 rounded-lg object-cover" />
+                            ) : (
+                              <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 text-[10px]">
+                                Sem foto
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-gray-800 text-sm truncate">{product.name}</p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-sm font-bold text-primary">
+                                  {formatCurrency(getProductPrice(product))}
+                                  {product.sale_unit === 'kg' ? '/kg' : product.sale_unit === 'unit' ? '/un' : '/cx'}
+                                </span>
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
+                                  product.is_available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                }`}>
+                                  {product.is_available ? 'Ativo' : 'Inativo'}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-gray-800 truncate">{product.name}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-sm font-bold text-primary">
-                              {formatCurrency(getProductPrice(product))}
-                              {product.sale_unit === 'kg' ? '/kg' : product.sale_unit === 'unit' ? '/un' : '/cx'}
-                            </span>
-                            <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
-                              product.is_available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                            }`}>
-                              {product.is_available ? 'Ativo' : 'Inativo'}
-                            </span>
+
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleToggle(product)}
+                              className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                                product.is_available
+                                  ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                                  : 'bg-green-100 text-green-700 hover:bg-green-200'
+                              }`}
+                            >
+                              {product.is_available ? 'Desativar' : 'Ativar'}
+                            </button>
+                            <button
+                              onClick={() => handleDelete(product)}
+                              className="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                            >
+                              Deletar
+                            </button>
                           </div>
                         </div>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleToggle(product)}
-                          className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-colors ${
-                            product.is_available
-                              ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                              : 'bg-green-100 text-green-700 hover:bg-green-200'
-                          }`}
-                        >
-                          {product.is_available ? 'Desativar' : 'Ativar'}
-                        </button>
-                        <button
-                          onClick={() => handleDelete(product)}
-                          className="flex-1 py-2 rounded-xl text-xs font-semibold bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
-                        >
-                          Deletar
-                        </button>
-                      </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
