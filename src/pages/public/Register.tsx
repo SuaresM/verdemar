@@ -19,7 +19,7 @@ const DAYS = [
 
 const baseSchema = z.object({
   email: z.string().email('E-mail inválido'),
-  password: z.string().min(6, 'Mínimo 6 caracteres'),
+  password: z.string().min(8, 'Mínimo 8 caracteres'),
   full_name: z.string().min(2, 'Nome obrigatório'),
   phone: z.string().min(10, 'Telefone inválido'),
 })
@@ -253,7 +253,7 @@ export default function Register() {
               <InputField label="Nome completo" required placeholder="João Silva" error={buyerForm.formState.errors.full_name?.message} {...buyerForm.register('full_name')} />
               <InputField label="Telefone" required placeholder="(11) 99999-9999" error={buyerForm.formState.errors.phone?.message} {...buyerForm.register('phone')} />
               <InputField label="E-mail" required type="email" placeholder="joao@empresa.com" error={buyerForm.formState.errors.email?.message} {...buyerForm.register('email')} />
-              <InputField label="Senha" required type="password" placeholder="Mínimo 6 caracteres" error={buyerForm.formState.errors.password?.message} {...buyerForm.register('password')} />
+              <InputField label="Senha" required type="password" placeholder="Mínimo 8 caracteres" error={buyerForm.formState.errors.password?.message} {...buyerForm.register('password')} />
             </div>
 
             <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
@@ -300,7 +300,7 @@ export default function Register() {
               <InputField label="Nome completo" required placeholder="Maria Silva" error={supplierForm.formState.errors.full_name?.message} {...supplierForm.register('full_name')} />
               <InputField label="Telefone" required placeholder="(11) 99999-9999" error={supplierForm.formState.errors.phone?.message} {...supplierForm.register('phone')} />
               <InputField label="E-mail" required type="email" placeholder="fornecedor@email.com" error={supplierForm.formState.errors.email?.message} {...supplierForm.register('email')} />
-              <InputField label="Senha" required type="password" placeholder="Mínimo 6 caracteres" error={supplierForm.formState.errors.password?.message} {...supplierForm.register('password')} />
+              <InputField label="Senha" required type="password" placeholder="Mínimo 8 caracteres" error={supplierForm.formState.errors.password?.message} {...supplierForm.register('password')} />
             </div>
 
             <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">

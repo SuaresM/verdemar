@@ -13,7 +13,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Profiles (extends auth.users)
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID REFERENCES auth.users PRIMARY KEY,
-  role TEXT NOT NULL CHECK (role IN ('buyer', 'supplier')),
+  role TEXT NOT NULL CHECK (role IN ('buyer', 'supplier', 'admin')),
   full_name TEXT NOT NULL,
   phone TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS products (
   price_per_kg DECIMAL(10,2),
   price_per_unit DECIMAL(10,2),
   unit_description TEXT,
+  stock_quantity DECIMAL(10,3),
   is_available BOOLEAN DEFAULT TRUE,
   is_featured BOOLEAN DEFAULT FALSE,
   total_sold INTEGER DEFAULT 0,
@@ -204,9 +205,18 @@ CREATE POLICY "Buyers can create order items" ON order_items
 CREATE OR REPLACE FUNCTION increment_supplier_sales(supplier_id UUID)
 RETURNS void AS $$
 BEGIN
+  -- Only increment if caller has placed an order with this supplier
+  IF NOT EXISTS (
+    SELECT 1 FROM orders
+    WHERE orders.supplier_id = increment_supplier_sales.supplier_id
+    AND orders.buyer_id = auth.uid()
+  ) THEN
+    RAISE EXCEPTION 'Not authorized to increment sales for this supplier';
+  END IF;
+
   UPDATE suppliers
   SET total_sales = total_sales + 1
-  WHERE id = supplier_id;
+  WHERE id = increment_supplier_sales.supplier_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -234,6 +244,34 @@ CREATE TRIGGER orders_updated_at
 -- ============================================================
 -- Create bucket: product-images (public)
 -- Create bucket: supplier-assets (public)
+
+-- ============================================================
+-- ADMIN ROLE SUPPORT
+-- ============================================================
+
+-- Helper function to check if current user is admin
+CREATE OR REPLACE FUNCTION is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM profiles
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Admin RLS policies
+CREATE POLICY "Admin can read all profiles" ON profiles FOR SELECT USING (is_admin());
+CREATE POLICY "Admin can update all profiles" ON profiles FOR UPDATE USING (is_admin());
+CREATE POLICY "Admin can read all buyers" ON buyers FOR SELECT USING (is_admin());
+CREATE POLICY "Admin can read all suppliers" ON suppliers FOR SELECT USING (is_admin());
+CREATE POLICY "Admin can update all suppliers" ON suppliers FOR UPDATE USING (is_admin());
+CREATE POLICY "Admin can delete suppliers" ON suppliers FOR DELETE USING (is_admin());
+CREATE POLICY "Admin can read all products" ON products FOR SELECT USING (is_admin());
+CREATE POLICY "Admin can update all products" ON products FOR UPDATE USING (is_admin());
+CREATE POLICY "Admin can delete all products" ON products FOR DELETE USING (is_admin());
+CREATE POLICY "Admin can read all orders" ON orders FOR SELECT USING (is_admin());
+CREATE POLICY "Admin can read all order items" ON order_items FOR SELECT USING (is_admin());
 
 -- Insert test data (optional)
 -- INSERT INTO profiles...
