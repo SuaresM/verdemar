@@ -16,8 +16,13 @@ DECLARE
 BEGIN
   meta := COALESCE(NEW.raw_user_meta_data, '{}'::JSONB);
 
+  -- Reject invalid roles (only buyer and supplier allowed via signup)
   IF meta->>'role' IS NULL THEN
     RETURN NEW;
+  END IF;
+
+  IF meta->>'role' NOT IN ('buyer', 'supplier') THEN
+    RAISE EXCEPTION 'Invalid role: %. Only buyer and supplier are allowed.', meta->>'role';
   END IF;
 
   INSERT INTO public.profiles (id, role, full_name, phone)
