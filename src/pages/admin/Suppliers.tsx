@@ -43,7 +43,7 @@ export default function AdminSuppliers() {
   }
 
   const handleDelete = async (supplier: Supplier) => {
-    if (!confirm(`Deletar "${supplier.store_name}" e todos os seus produtos? Esta acao nao pode ser desfeita.`)) return
+    if (!confirm(`Deletar "${supplier.store_name}" e todos os seus produtos? Esta ação não pode ser desfeita.`)) return
     try {
       await deleteSupplierAdmin(supplier.id)
       toast.success('Fornecedor deletado')

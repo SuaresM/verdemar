@@ -61,6 +61,13 @@ export default function Search() {
     }
   }, [category])
 
+  // Auto-search when category changes (if user already searched or came from home)
+  useEffect(() => {
+    if (hasSearched || category) {
+      handleSearch(query)
+    }
+  }, [category]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') handleSearch(query)
   }

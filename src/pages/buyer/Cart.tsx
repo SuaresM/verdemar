@@ -138,36 +138,7 @@ export default function Cart() {
     if (!checkoutSection || !buyer) return
     setCheckoutLoading(true)
     try {
-      const { profile } = useAuthStore.getState()
-
-      const order = await createOrder(
-        {
-          buyer_id: buyer.id,
-          supplier_id: checkoutSection.supplier.id,
-          status: 'pending',
-          total_value: checkoutSection.sectionTotal,
-          notes: checkoutSection.notes,
-          delivery_time_preference: checkoutSection.deliveryTimePreference,
-          payment_method: 'cash_on_delivery',
-          whatsapp_sent: true,
-        },
-        checkoutSection.items.map((item) => ({
-          product_id: item.product.id,
-          product_name: item.product.name,
-          sale_unit: item.product.sale_unit,
-          quantity: item.quantity,
-          unit_price: item.product.sale_unit === 'box'
-            ? item.product.box_price || 0
-            : item.product.sale_unit === 'kg'
-            ? item.product.price_per_kg || 0
-            : item.product.price_per_unit || 0,
-          subtotal: item.subtotal,
-        }))
-      )
-
-      const orderItems = checkoutSection.items.map((item) => ({
-        id: '',
-        order_id: order.id,
+      const itemsData = checkoutSection.items.map((item) => ({
         product_id: item.product.id,
         product_name: item.product.name,
         sale_unit: item.product.sale_unit,
@@ -180,10 +151,30 @@ export default function Cart() {
         subtotal: item.subtotal,
       }))
 
+      const order = await createOrder(
+        {
+          buyer_id: buyer.id,
+          supplier_id: checkoutSection.supplier.id,
+          status: 'pending',
+          total_value: checkoutSection.sectionTotal,
+          notes: checkoutSection.notes,
+          delivery_time_preference: checkoutSection.deliveryTimePreference,
+          payment_method: 'cash_on_delivery',
+          whatsapp_sent: true,
+        },
+        itemsData
+      )
+
+      const orderItems = itemsData.map((item) => ({
+        ...item,
+        id: '',
+        order_id: order.id,
+      }))
+
       const message = formatWhatsAppMessage(
-        { ...order, notes: checkoutSection.notes, delivery_time_preference: checkoutSection.deliveryTimePreference },
+        { ...order, notes: checkoutSection.notes, delivery_time_preference: checkoutSection.deliveryTimePreference } as import('../../types').Order,
         buyer,
-        orderItems
+        orderItems as import('../../types').OrderItem[]
       )
 
       openWhatsApp(checkoutSection.supplier.whatsapp, message)

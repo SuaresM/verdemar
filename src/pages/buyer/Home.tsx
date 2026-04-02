@@ -59,10 +59,10 @@ export default function Home() {
             <div className="flex items-center gap-1 text-sm text-gray-500 mb-0.5">
               <span className="text-2xl font-extrabold text-primary">🌿 VerdeMar</span>
             </div>
-            {buyer && (
+            {buyer && (buyer.address_city || buyer.address_state) && (
               <div className="flex items-center gap-1 text-xs text-gray-400">
                 <MapPin size={11} />
-                <span>{buyer.address_city}, {buyer.address_state}</span>
+                <span>{[buyer.address_city, buyer.address_state].filter(Boolean).join(', ')}</span>
               </div>
             )}
           </div>

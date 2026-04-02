@@ -73,8 +73,18 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       }
 
       set({ user, profile, buyer, supplier, isLoading: false })
-    } catch {
-      set({ isLoading: false })
+    } catch (err) {
+      const isNetworkError = err instanceof TypeError && err.message === 'Failed to fetch'
+      set({
+        user: null,
+        profile: null,
+        buyer: null,
+        supplier: null,
+        isLoading: false,
+      })
+      if (isNetworkError) {
+        console.error('Erro de rede ao carregar perfil. Verifique sua conexão.')
+      }
     }
   },
 }))

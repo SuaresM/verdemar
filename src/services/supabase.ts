@@ -196,8 +196,12 @@ export async function createOrder(
   const { error: itemsError } = await supabase.from('order_items').insert(orderItems)
   if (itemsError) throw itemsError
 
-  // Update supplier total_sales
-  await supabase.rpc('increment_supplier_sales', { supplier_id: order.supplier_id })
+  // Update supplier total_sales (non-blocking - don't fail the order if this fails)
+  try {
+    await supabase.rpc('increment_supplier_sales', { supplier_id: order.supplier_id })
+  } catch (rpcErr) {
+    console.error('Erro ao incrementar vendas do fornecedor:', rpcErr)
+  }
 
   return orderData
 }
@@ -321,15 +325,16 @@ export async function getAdminDashboard() {
 }
 
 export async function getSupplierDashboard(supplierId: string) {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+  // Use date-only strings to avoid timezone issues (Supabase stores in UTC)
+  const now = new Date()
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T00:00:00`
+  const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01T00:00:00`
 
   const { data: ordersToday } = await supabase
     .from('orders')
     .select('id', { count: 'exact' })
     .eq('supplier_id', supplierId)
-    .gte('created_at', today.toISOString())
+    .gte('created_at', todayStr)
 
   const { data: ordersPending } = await supabase
     .from('orders')
@@ -341,7 +346,7 @@ export async function getSupplierDashboard(supplierId: string) {
     .from('orders')
     .select('total_value')
     .eq('supplier_id', supplierId)
-    .gte('created_at', startOfMonth.toISOString())
+    .gte('created_at', startOfMonth)
 
   const monthTotal = monthOrders?.reduce((sum, o) => sum + (o.total_value || 0), 0) || 0
 

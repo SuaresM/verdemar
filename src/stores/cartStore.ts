@@ -15,9 +15,9 @@ interface CartStore {
 }
 
 function calculateSubtotal(product: Product, quantity: number): number {
-  if (product.sale_unit === 'box') return (product.box_price || 0) * quantity
-  if (product.sale_unit === 'kg') return (product.price_per_kg || 0) * quantity
-  if (product.sale_unit === 'unit') return (product.price_per_unit || 0) * quantity
+  if (product.sale_unit === 'box') return Math.round((product.box_price || 0) * quantity * 100) / 100
+  if (product.sale_unit === 'kg') return Math.round((product.price_per_kg || 0) * quantity * 100) / 100
+  if (product.sale_unit === 'unit') return Math.round((product.price_per_unit || 0) * quantity * 100) / 100
   return 0
 }
 
