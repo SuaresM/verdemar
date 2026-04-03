@@ -4,6 +4,7 @@ import { Toaster } from 'sonner'
 import { useAuthStore } from './stores/authStore'
 import { supabase } from './lib/supabaseClient'
 import { PageLoader } from './components/shared/LoadingSpinner'
+import { ErrorBoundary } from './components/shared/ErrorBoundary'
 import { BuyerNav } from './components/layout/BuyerNav'
 import { SupplierNav } from './components/layout/SupplierNav'
 import { AdminNav } from './components/layout/AdminNav'
@@ -37,7 +38,9 @@ function BuyerLayout() {
   return (
     <div className="flex flex-col min-h-screen max-w-lg mx-auto relative">
       <div className="flex-1 overflow-y-auto pb-16">
-        <Outlet />
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
       </div>
       <BuyerNav />
     </div>
@@ -52,7 +55,9 @@ function SupplierLayout() {
   return (
     <div className="flex flex-col min-h-screen max-w-lg mx-auto relative">
       <div className="flex-1 overflow-y-auto pb-16">
-        <Outlet />
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
       </div>
       <SupplierNav />
     </div>
@@ -67,7 +72,9 @@ function AdminLayout() {
   return (
     <div className="flex flex-col min-h-screen max-w-lg mx-auto relative">
       <div className="flex-1 overflow-y-auto pb-16">
-        <Outlet />
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
       </div>
       <AdminNav />
     </div>

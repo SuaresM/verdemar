@@ -33,14 +33,33 @@ const statusColor: Record<OrderStatus, string> = {
 
 export default function AdminOrders() {
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [orders, setOrders] = useState<Order[]>([])
   const [statusFilter, setStatusFilter] = useState('')
+  const [page, setPage] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
 
   useEffect(() => {
-    getAllOrders()
-      .then(setOrders)
+    getAllOrders(0)
+      .then((result) => {
+        setOrders(result.data)
+        setHasMore(result.hasMore)
+      })
       .finally(() => setLoading(false))
   }, [])
+
+  const loadMore = async () => {
+    const nextPage = page + 1
+    setLoadingMore(true)
+    try {
+      const result = await getAllOrders(nextPage)
+      setOrders((prev) => [...prev, ...result.data])
+      setHasMore(result.hasMore)
+      setPage(nextPage)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   const filtered = statusFilter
     ? orders.filter((o) => o.status === statusFilter)
@@ -103,6 +122,16 @@ export default function AdminOrders() {
                 )}
               </div>
             ))}
+
+            {hasMore && (
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="w-full py-3 bg-white rounded-2xl text-sm font-semibold text-primary hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50"
+              >
+                {loadingMore ? 'Carregando...' : 'Carregar mais pedidos'}
+              </button>
+            )}
           </div>
         )}
       </div>

@@ -104,16 +104,24 @@ export async function getFeaturedSuppliers(): Promise<Supplier[]> {
   return data
 }
 
-export async function searchSuppliers(query: string, city?: string): Promise<Supplier[]> {
+export async function searchSuppliers(
+  query: string,
+  city?: string,
+  page = 0
+): Promise<{ data: Supplier[]; hasMore: boolean }> {
+  const from = page * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
   let q = supabase
     .from('suppliers')
     .select('*')
     .eq('is_active', true)
     .ilike('store_name', `%${query}%`)
   if (city) q = q.ilike('address_city', `%${city}%`)
+  q = q.range(from, to + 1)
   const { data, error } = await q
-  if (error) return []
-  return data
+  if (error) return { data: [], hasMore: false }
+  const hasMore = (data?.length || 0) > PAGE_SIZE
+  return { data: hasMore ? data!.slice(0, PAGE_SIZE) : data || [], hasMore }
 }
 
 // ---- PRODUCTS ----
@@ -149,16 +157,26 @@ export async function getFeaturedProducts(): Promise<Product[]> {
   return data
 }
 
-export async function searchProducts(query?: string, category?: string): Promise<Product[]> {
+const PAGE_SIZE = 20
+
+export async function searchProducts(
+  query?: string,
+  category?: string,
+  page = 0
+): Promise<{ data: Product[]; hasMore: boolean }> {
+  const from = page * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
   let q = supabase
     .from('products')
     .select('*, supplier:suppliers(*)')
     .eq('is_available', true)
   if (query) q = q.ilike('name', `%${query}%`)
   if (category) q = q.eq('category', category)
+  q = q.range(from, to + 1) // fetch one extra to detect hasMore
   const { data, error } = await q
-  if (error) return []
-  return data
+  if (error) return { data: [], hasMore: false }
+  const hasMore = (data?.length || 0) > PAGE_SIZE
+  return { data: hasMore ? data!.slice(0, PAGE_SIZE) : data || [], hasMore }
 }
 
 export async function createProduct(product: Omit<Product, 'id' | 'total_sold' | 'created_at' | 'updated_at' | 'supplier'>) {
@@ -244,22 +262,30 @@ export async function getAllSuppliers(): Promise<(Supplier & { profile?: Profile
   return data
 }
 
-export async function getAllProducts(): Promise<Product[]> {
+export async function getAllProducts(page = 0): Promise<{ data: Product[]; hasMore: boolean }> {
+  const from = page * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
   const { data, error } = await supabase
     .from('products')
     .select('*, supplier:suppliers(*)')
     .order('created_at', { ascending: false })
-  if (error) return []
-  return data
+    .range(from, to + 1)
+  if (error) return { data: [], hasMore: false }
+  const hasMore = (data?.length || 0) > PAGE_SIZE
+  return { data: hasMore ? data!.slice(0, PAGE_SIZE) : data || [], hasMore }
 }
 
-export async function getAllOrders(): Promise<Order[]> {
+export async function getAllOrders(page = 0): Promise<{ data: Order[]; hasMore: boolean }> {
+  const from = page * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
   const { data, error } = await supabase
     .from('orders')
     .select('*, buyer:buyers(*), supplier:suppliers(*), items:order_items(*)')
     .order('created_at', { ascending: false })
-  if (error) return []
-  return data
+    .range(from, to + 1)
+  if (error) return { data: [], hasMore: false }
+  const hasMore = (data?.length || 0) > PAGE_SIZE
+  return { data: hasMore ? data!.slice(0, PAGE_SIZE) : data || [], hasMore }
 }
 
 export async function deactivateSupplier(id: string) {

@@ -24,14 +24,32 @@ function getProductPrice(product: Product): number {
 
 export default function AdminProducts() {
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [products, setProducts] = useState<Product[]>([])
   const [category, setCategory] = useState('')
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  const [page, setPage] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
 
   const load = async () => {
-    const data = await getAllProducts()
-    setProducts(data)
+    const result = await getAllProducts(0)
+    setProducts(result.data)
+    setHasMore(result.hasMore)
+    setPage(0)
     setLoading(false)
+  }
+
+  const loadMore = async () => {
+    const nextPage = page + 1
+    setLoadingMore(true)
+    try {
+      const result = await getAllProducts(nextPage)
+      setProducts((prev) => [...prev, ...result.data])
+      setHasMore(result.hasMore)
+      setPage(nextPage)
+    } finally {
+      setLoadingMore(false)
+    }
   }
 
   useEffect(() => { load() }, [])
@@ -208,6 +226,16 @@ export default function AdminProducts() {
                 </div>
               )
             })}
+
+            {hasMore && (
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="w-full py-3 bg-white rounded-2xl text-sm font-semibold text-primary hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50"
+              >
+                {loadingMore ? 'Carregando...' : 'Carregar mais produtos'}
+              </button>
+            )}
           </div>
         )}
       </div>

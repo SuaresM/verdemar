@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Search as SearchIcon, X } from 'lucide-react'
 import { searchProducts, searchSuppliers } from '../../services/supabase'
@@ -27,7 +27,13 @@ export default function Search() {
   const [products, setProducts] = useState<Product[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
+  const [productPage, setProductPage] = useState(0)
+  const [supplierPage, setSupplierPage] = useState(0)
+  const [hasMoreProducts, setHasMoreProducts] = useState(false)
+  const [hasMoreSuppliers, setHasMoreSuppliers] = useState(false)
+  const lastSearchRef = useRef({ query: '', category: '' })
 
   useEffect(() => {
     const catParam = searchParams.get('category')
@@ -36,11 +42,16 @@ export default function Search() {
       setLoading(true)
       setHasSearched(true)
       Promise.all([
-        searchProducts(undefined, catParam),
-        searchSuppliers(''),
-      ]).then(([prods, sups]) => {
-        setProducts(prods)
-        setSuppliers(sups)
+        searchProducts(undefined, catParam, 0),
+        searchSuppliers('', undefined, 0),
+      ]).then(([prodResult, supResult]) => {
+        setProducts(prodResult.data)
+        setHasMoreProducts(prodResult.hasMore)
+        setSuppliers(supResult.data)
+        setHasMoreSuppliers(supResult.hasMore)
+        setProductPage(0)
+        setSupplierPage(0)
+        lastSearchRef.current = { query: '', category: catParam }
       }).finally(() => setLoading(false))
     }
   }, [searchParams])
@@ -49,17 +60,50 @@ export default function Search() {
     if (!q.trim() && !category) return
     setLoading(true)
     setHasSearched(true)
+    setProductPage(0)
+    setSupplierPage(0)
+    lastSearchRef.current = { query: q.trim(), category }
     try {
-      const [prods, sups] = await Promise.all([
-        searchProducts(q.trim() || undefined, category || undefined),
-        searchSuppliers(q),
+      const [prodResult, supResult] = await Promise.all([
+        searchProducts(q.trim() || undefined, category || undefined, 0),
+        searchSuppliers(q, undefined, 0),
       ])
-      setProducts(prods)
-      setSuppliers(sups)
+      setProducts(prodResult.data)
+      setHasMoreProducts(prodResult.hasMore)
+      setSuppliers(supResult.data)
+      setHasMoreSuppliers(supResult.hasMore)
     } finally {
       setLoading(false)
     }
   }, [category])
+
+  const loadMoreProducts = async () => {
+    const nextPage = productPage + 1
+    setLoadingMore(true)
+    try {
+      const { query: q, category: cat } = lastSearchRef.current
+      const result = await searchProducts(q || undefined, cat || undefined, nextPage)
+      setProducts((prev) => [...prev, ...result.data])
+      setHasMoreProducts(result.hasMore)
+      setProductPage(nextPage)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
+
+  const loadMoreSuppliers = async () => {
+    const nextPage = supplierPage + 1
+    setLoadingMore(true)
+    try {
+      const { query: q } = lastSearchRef.current
+      const result = await searchSuppliers(q, undefined, nextPage)
+      setSuppliers((prev) => [...prev, ...result.data])
+      setHasMoreSuppliers(result.hasMore)
+      setSupplierPage(nextPage)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   // Auto-search when category changes (if user already searched or came from home)
   useEffect(() => {
@@ -166,6 +210,15 @@ export default function Search() {
                 ))}
               </div>
             )}
+            {hasMoreProducts && (
+              <button
+                onClick={loadMoreProducts}
+                disabled={loadingMore}
+                className="w-full mt-4 py-3 bg-white rounded-2xl text-sm font-semibold text-primary hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50"
+              >
+                {loadingMore ? 'Carregando...' : 'Carregar mais produtos'}
+              </button>
+            )}
           </>
         )}
 
@@ -179,6 +232,15 @@ export default function Search() {
                   <SupplierCard key={supplier.id} supplier={supplier} />
                 ))}
               </div>
+            )}
+            {hasMoreSuppliers && (
+              <button
+                onClick={loadMoreSuppliers}
+                disabled={loadingMore}
+                className="w-full mt-4 py-3 bg-white rounded-2xl text-sm font-semibold text-primary hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50"
+              >
+                {loadingMore ? 'Carregando...' : 'Carregar mais fornecedores'}
+              </button>
             )}
           </>
         )}
