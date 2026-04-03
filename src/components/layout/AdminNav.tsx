@@ -14,19 +14,20 @@ export function AdminNav() {
   }
 
   const navItems = [
-    { to: '/admin/dashboard', icon: BarChart2, label: 'Painel' },
-    { to: '/admin/suppliers', icon: Store, label: 'Fornecedores' },
-    { to: '/admin/products', icon: Package, label: 'Produtos' },
-    { to: '/admin/orders', icon: ClipboardList, label: 'Pedidos' },
+    { to: '/admin/dashboard', icon: BarChart2, label: 'Painel', id: 'nav-admin-dashboard' },
+    { to: '/admin/suppliers', icon: Store, label: 'Fornecedores', id: 'nav-admin-suppliers' },
+    { to: '/admin/products', icon: Package, label: 'Produtos', id: 'nav-admin-products' },
+    { to: '/admin/orders', icon: ClipboardList, label: 'Pedidos', id: 'nav-admin-orders' },
   ]
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 safe-bottom z-50">
       <div className="flex items-stretch justify-around max-w-lg mx-auto">
-        {navItems.map(({ to, icon: Icon, label }) => (
+        {navItems.map(({ to, icon: Icon, label, id }) => (
           <NavLink
             key={to}
             to={to}
+            id={id}
             className={({ isActive }) =>
               `flex flex-col items-center justify-center py-2 px-4 flex-1 min-h-[56px] transition-colors ${
                 isActive ? 'text-primary' : 'text-gray-400'
@@ -38,6 +39,7 @@ export function AdminNav() {
           </NavLink>
         ))}
         <button
+          id="nav-admin-logout"
           onClick={handleSignOut}
           className="flex flex-col items-center justify-center py-2 px-4 flex-1 min-h-[56px] text-red-400 hover:text-red-600 transition-colors"
         >

@@ -7,6 +7,7 @@ import type { Product, Supplier } from '../../types'
 import { ProductCard } from '../../components/product/ProductCard'
 import { SupplierCard } from '../../components/supplier/SupplierCard'
 import { PageLoader } from '../../components/shared/LoadingSpinner'
+import { useOnboarding } from '../../hooks/useOnboarding'
 
 const CATEGORIES = [
   { value: 'all', label: 'Todos', emoji: '🌿' },
@@ -23,6 +24,8 @@ export default function Home() {
   const [products, setProducts] = useState<Product[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [refreshing, setRefreshing] = useState(false)
+
+  useOnboarding('buyer')
 
   const load = useCallback(async () => {
     const [prods, sups] = await Promise.all([getFeaturedProducts(), getFeaturedSuppliers()])
@@ -76,7 +79,7 @@ export default function Home() {
         </div>
 
         {/* Welcome banner */}
-        <div className="mt-3 bg-gradient-to-r from-primary to-primary-light rounded-2xl p-4 text-white">
+        <div id="onboarding-welcome" className="mt-3 bg-gradient-to-r from-primary to-primary-light rounded-2xl p-4 text-white">
           <p className="text-sm opacity-90">Bem-vindo,</p>
           <p className="font-bold text-lg">{buyer?.company_name || 'Comprador'} 👋</p>
           <p className="text-xs opacity-80 mt-0.5">Encontre os melhores fornecedores de hortifrúti</p>
@@ -84,7 +87,7 @@ export default function Home() {
       </div>
 
       {/* Categories */}
-      <div className="px-4 py-4">
+      <div id="onboarding-categories" className="px-4 py-4">
         <h2 className="font-bold text-gray-900 mb-3">Categorias</h2>
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
           {CATEGORIES.map((cat) => (
@@ -102,7 +105,7 @@ export default function Home() {
 
       {/* Featured Products */}
       {products.length > 0 && (
-        <div className="px-4 mb-6">
+        <div id="onboarding-products" className="px-4 mb-6">
           <h2 className="font-bold text-gray-900 mb-3">Mais Vendidos</h2>
           <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
             {products.map((product) => (
@@ -120,7 +123,7 @@ export default function Home() {
 
       {/* Featured Suppliers */}
       {suppliers.length > 0 && (
-        <div className="px-4">
+        <div id="onboarding-suppliers" className="px-4">
           <h2 className="font-bold text-gray-900 mb-3">Fornecedores em Destaque</h2>
           <div className="space-y-3">
             {suppliers.map((supplier) => (

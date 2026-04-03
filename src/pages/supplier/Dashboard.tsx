@@ -7,6 +7,7 @@ import type { Order } from '../../types'
 import { OrderStatusBadge } from '../../components/shared/Badge'
 import { PageLoader } from '../../components/shared/LoadingSpinner'
 import { formatCurrency, formatDate } from '../../utils'
+import { useOnboarding } from '../../hooks/useOnboarding'
 
 interface DashboardData {
   todayCount: number
@@ -20,6 +21,8 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
+
+  useOnboarding('supplier')
 
   useEffect(() => {
     if (!supplier) return
@@ -41,6 +44,7 @@ export default function Dashboard() {
             <p className="text-sm text-gray-500 mt-0.5">Painel do Fornecedor</p>
           </div>
           <button
+            id="onboarding-add-product"
             onClick={() => navigate('/supplier/products/new')}
             className="flex items-center gap-1.5 bg-primary text-white text-sm font-semibold px-3 py-2 rounded-xl"
           >
@@ -49,7 +53,7 @@ export default function Dashboard() {
           </button>
         </div>
         {supplier && (
-          <div className="mt-3 bg-gradient-to-r from-primary to-primary-light rounded-2xl p-4 text-white">
+          <div id="onboarding-supplier-welcome" className="mt-3 bg-gradient-to-r from-primary to-primary-light rounded-2xl p-4 text-white">
             <p className="text-sm opacity-90">Bem-vindo de volta,</p>
             <p className="font-bold text-lg">{supplier.store_name} 👋</p>
           </div>
@@ -58,7 +62,7 @@ export default function Dashboard() {
 
       <div className="px-4 py-4 space-y-4">
         {/* Stats cards */}
-        <div className="grid grid-cols-3 gap-3">
+        <div id="onboarding-stats" className="grid grid-cols-3 gap-3">
           <div className="bg-white rounded-2xl shadow-sm p-3 text-center">
             <div className="flex justify-center mb-1">
               <Clock size={20} className="text-accent" />
@@ -85,7 +89,7 @@ export default function Dashboard() {
         </div>
 
         {/* Recent orders */}
-        <div>
+        <div id="onboarding-recent-orders">
           <div className="flex items-center justify-between mb-3">
             <p className="font-bold text-gray-900">Últimos Pedidos</p>
             <button

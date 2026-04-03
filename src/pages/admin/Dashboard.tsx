@@ -4,9 +4,13 @@ import { Header } from '../../components/layout/Header'
 import { PageLoader } from '../../components/shared/LoadingSpinner'
 import { formatCurrency } from '../../utils'
 import { Users, Store, Package, ClipboardList } from 'lucide-react'
+import { useOnboarding } from '../../hooks/useOnboarding'
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
+
+  useOnboarding('admin')
+
   const [stats, setStats] = useState({
     suppliersCount: 0,
     buyersCount: 0,
@@ -35,7 +39,7 @@ export default function AdminDashboard() {
       <Header title="Painel Admin" />
 
       <div className="px-4 py-4 space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div id="onboarding-admin-stats" className="grid grid-cols-2 gap-3">
           {cards.map((card) => (
             <div key={card.label} className="bg-white rounded-2xl shadow-sm p-4">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-2 ${card.color}`}>
