@@ -23,6 +23,10 @@
 
   html {
     -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    width: 100%;
+    overflow-x: hidden;
   }
 
   body {
@@ -31,12 +35,43 @@
     color: #1b1b1b;
     margin: 0;
     padding: 0;
+    width: 100%;
     min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
     overscroll-behavior: none;
+  }
+
+  #root {
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
   }
 
   input, textarea, select, button {
     font-family: 'Nunito', sans-serif;
+  }
+
+  /* Prevent iOS Safari auto-zoom on input focus (requires >= 16px font-size) */
+  @media (max-width: 640px) {
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    input[type="tel"],
+    input[type="search"],
+    input[type="url"],
+    input[type="date"],
+    input[type="time"],
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+  }
+
+  img, video {
+    max-width: 100%;
+    height: auto;
   }
 }
 
