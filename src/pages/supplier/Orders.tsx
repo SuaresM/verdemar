@@ -51,17 +51,25 @@ export default function SupplierOrders() {
     }
   }
 
-  const handleCancel = async (orderId: string) => {
-    if (!confirm('Cancelar este pedido?')) return
-    try {
-      await updateOrderStatus(orderId, 'cancelled')
-      setOrders((prev) =>
-        prev.map((o) => o.id === orderId ? { ...o, status: 'cancelled' } : o)
-      )
-      toast.success('Pedido cancelado')
-    } catch {
-      toast.error('Erro ao cancelar')
-    }
+  const handleCancel = (orderId: string) => {
+    toast('Cancelar este pedido?', {
+      action: {
+        label: 'Sim, cancelar',
+        onClick: async () => {
+          try {
+            await updateOrderStatus(orderId, 'cancelled')
+            setOrders((prev) =>
+              prev.map((o) => o.id === orderId ? { ...o, status: 'cancelled' } : o)
+            )
+            toast.success('Pedido cancelado')
+          } catch {
+            toast.error('Erro ao cancelar')
+          }
+        },
+      },
+      cancel: { label: 'Voltar', onClick: () => {} },
+      duration: 8000,
+    })
   }
 
   if (loading) return <PageLoader />
