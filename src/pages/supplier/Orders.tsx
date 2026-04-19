@@ -28,10 +28,10 @@ export default function SupplierOrders() {
 
   useEffect(() => {
     if (!supplier) return
-    getOrdersBySupplier(supplier.id).then((data) => {
-      setOrders(data)
-      setLoading(false)
-    })
+    getOrdersBySupplier(supplier.id)
+      .then((data) => setOrders(data))
+      .catch(() => toast.error('Erro ao carregar pedidos'))
+      .finally(() => setLoading(false))
   }, [supplier])
 
   const handleUpdateStatus = async (order: Order) => {

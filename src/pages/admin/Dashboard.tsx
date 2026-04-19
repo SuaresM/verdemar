@@ -22,6 +22,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     getAdminDashboard()
       .then(setStats)
+      .catch((err) => console.error('Erro ao carregar dashboard admin:', err))
       .finally(() => setLoading(false))
   }, [])
 

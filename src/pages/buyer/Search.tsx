@@ -34,10 +34,14 @@ export default function Search() {
   const [hasMoreProducts, setHasMoreProducts] = useState(false)
   const [hasMoreSuppliers, setHasMoreSuppliers] = useState(false)
   const lastSearchRef = useRef({ query: '', category: '' })
+  const skipNextCategoryEffect = useRef(false)
 
   useEffect(() => {
     const catParam = searchParams.get('category')
     if (catParam) {
+      // The [category] effect below will see this change and try to re-fetch.
+      // Skip it to avoid a duplicate Supabase round-trip.
+      skipNextCategoryEffect.current = true
       setCategory(catParam)
       setLoading(true)
       setHasSearched(true)
@@ -107,6 +111,10 @@ export default function Search() {
 
   // Auto-search when category changes (if user already searched or came from home)
   useEffect(() => {
+    if (skipNextCategoryEffect.current) {
+      skipNextCategoryEffect.current = false
+      return
+    }
     if (hasSearched || category) {
       handleSearch(query)
     }

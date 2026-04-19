@@ -16,6 +16,10 @@ interface AuthStore {
   setUser: (user: User | null) => void
 }
 
+// Module-level mutex: prevents concurrent loadProfile() calls from racing
+// (signIn + onAuthStateChange can both trigger loadProfile simultaneously).
+let loadProfileInFlight: Promise<void> | null = null
+
 export const useAuthStore = create<AuthStore>()((set, get) => ({
   user: null,
   profile: null,
@@ -34,7 +38,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       if (!get().profile) {
         await supabase.auth.signOut()
         set({ user: null, isLoading: false })
-        throw new Error('Perfil nao encontrado. Por favor, cadastre-se novamente.')
+        throw new Error('Perfil não encontrado. Por favor, cadastre-se novamente.')
       }
     } finally {
       set({ isLoading: false })
@@ -47,44 +51,45 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   },
 
   loadProfile: async () => {
-    set({ isLoading: true })
+    if (loadProfileInFlight) return loadProfileInFlight
+    loadProfileInFlight = (async () => {
+      set({ isLoading: true })
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session?.user) {
+          set({ user: null, profile: null, buyer: null, supplier: null, isLoading: false })
+          return
+        }
+
+        const user = session.user
+        const profile = await getProfile(user.id)
+
+        if (!profile) {
+          set({ user, profile: null, buyer: null, supplier: null, isLoading: false })
+          return
+        }
+
+        let buyer: Buyer | null = null
+        let supplier: Supplier | null = null
+
+        if (profile.role === 'buyer') {
+          buyer = await getBuyer(user.id)
+        } else if (profile.role === 'supplier') {
+          supplier = await getSupplier(user.id)
+        }
+
+        set({ user, profile, buyer, supplier, isLoading: false })
+      } catch (err) {
+        // Transient errors should not forcefully sign the user out — just
+        // release loading. Only an explicit signOut() clears the session.
+        console.error('Erro ao carregar perfil:', err)
+        set({ isLoading: false })
+      }
+    })()
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user) {
-        set({ user: null, profile: null, buyer: null, supplier: null, isLoading: false })
-        return
-      }
-
-      const user = session.user
-      const profile = await getProfile(user.id)
-
-      if (!profile) {
-        set({ user, profile: null, buyer: null, supplier: null, isLoading: false })
-        return
-      }
-
-      let buyer: Buyer | null = null
-      let supplier: Supplier | null = null
-
-      if (profile.role === 'buyer') {
-        buyer = await getBuyer(user.id)
-      } else if (profile.role === 'supplier') {
-        supplier = await getSupplier(user.id)
-      }
-
-      set({ user, profile, buyer, supplier, isLoading: false })
-    } catch (err) {
-      const isNetworkError = err instanceof TypeError && err.message === 'Failed to fetch'
-      set({
-        user: null,
-        profile: null,
-        buyer: null,
-        supplier: null,
-        isLoading: false,
-      })
-      if (isNetworkError) {
-        console.error('Erro de rede ao carregar perfil. Verifique sua conexão.')
-      }
+      await loadProfileInFlight
+    } finally {
+      loadProfileInFlight = null
     }
   },
 }))

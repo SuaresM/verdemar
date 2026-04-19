@@ -26,10 +26,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!supplier) return
-    getSupplierDashboard(supplier.id).then((d) => {
-      setData(d)
-      setLoading(false)
-    })
+    getSupplierDashboard(supplier.id)
+      .then((d) => setData(d))
+      .catch((err) => console.error('Erro ao carregar dashboard:', err))
+      .finally(() => setLoading(false))
   }, [supplier])
 
   if (loading) return <PageLoader />

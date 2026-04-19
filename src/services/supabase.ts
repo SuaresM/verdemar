@@ -224,22 +224,24 @@ export async function createOrder(
   return orderData
 }
 
-export async function getOrdersByBuyer(buyerId: string): Promise<Order[]> {
+export async function getOrdersByBuyer(buyerId: string, limit = 100): Promise<Order[]> {
   const { data, error } = await supabase
     .from('orders')
     .select('*, supplier:suppliers(*), items:order_items(*)')
     .eq('buyer_id', buyerId)
     .order('created_at', { ascending: false })
+    .limit(limit)
   if (error) return []
   return data
 }
 
-export async function getOrdersBySupplier(supplierId: string): Promise<Order[]> {
+export async function getOrdersBySupplier(supplierId: string, limit = 100): Promise<Order[]> {
   const { data, error } = await supabase
     .from('orders')
     .select('*, buyer:buyers(*), items:order_items(*)')
     .eq('supplier_id', supplierId)
     .order('created_at', { ascending: false })
+    .limit(limit)
   if (error) return []
   return data
 }
@@ -319,74 +321,63 @@ export async function deleteSupplierAdmin(id: string) {
 }
 
 export async function getAdminDashboard() {
-  const { count: suppliersCount } = await supabase
-    .from('suppliers')
-    .select('*', { count: 'exact', head: true })
-
-  const { count: buyersCount } = await supabase
-    .from('buyers')
-    .select('*', { count: 'exact', head: true })
-
-  const { count: productsCount } = await supabase
-    .from('products')
-    .select('*', { count: 'exact', head: true })
-
-  const { count: ordersCount } = await supabase
-    .from('orders')
-    .select('*', { count: 'exact', head: true })
-
-  const { data: recentOrders } = await supabase
-    .from('orders')
-    .select('*, buyer:buyers(*), supplier:suppliers(*)')
-    .order('created_at', { ascending: false })
-    .limit(10)
+  const [suppliersRes, buyersRes, productsRes, ordersRes, recentOrdersRes] = await Promise.all([
+    supabase.from('suppliers').select('*', { count: 'exact', head: true }),
+    supabase.from('buyers').select('*', { count: 'exact', head: true }),
+    supabase.from('products').select('*', { count: 'exact', head: true }),
+    supabase.from('orders').select('*', { count: 'exact', head: true }),
+    supabase
+      .from('orders')
+      .select('*, buyer:buyers(*), supplier:suppliers(*)')
+      .order('created_at', { ascending: false })
+      .limit(10),
+  ])
 
   return {
-    suppliersCount: suppliersCount || 0,
-    buyersCount: buyersCount || 0,
-    productsCount: productsCount || 0,
-    ordersCount: ordersCount || 0,
-    recentOrders: recentOrders || [],
+    suppliersCount: suppliersRes.count || 0,
+    buyersCount: buyersRes.count || 0,
+    productsCount: productsRes.count || 0,
+    ordersCount: ordersRes.count || 0,
+    recentOrders: recentOrdersRes.data || [],
   }
 }
 
 export async function getSupplierDashboard(supplierId: string) {
-  // Use date-only strings to avoid timezone issues (Supabase stores in UTC)
+  // UTC boundaries to match Supabase's timestamptz storage.
   const now = new Date()
-  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T00:00:00`
-  const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01T00:00:00`
+  const todayStr = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString()
+  const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
 
-  const { data: ordersToday } = await supabase
-    .from('orders')
-    .select('id', { count: 'exact' })
-    .eq('supplier_id', supplierId)
-    .gte('created_at', todayStr)
+  const [todayRes, pendingRes, monthRes, recentRes] = await Promise.all([
+    supabase
+      .from('orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('supplier_id', supplierId)
+      .gte('created_at', todayStr),
+    supabase
+      .from('orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('supplier_id', supplierId)
+      .eq('status', 'pending'),
+    supabase
+      .from('orders')
+      .select('total_value')
+      .eq('supplier_id', supplierId)
+      .gte('created_at', startOfMonth),
+    supabase
+      .from('orders')
+      .select('*, buyer:buyers(*), items:order_items(*)')
+      .eq('supplier_id', supplierId)
+      .order('created_at', { ascending: false })
+      .limit(5),
+  ])
 
-  const { data: ordersPending } = await supabase
-    .from('orders')
-    .select('id', { count: 'exact' })
-    .eq('supplier_id', supplierId)
-    .eq('status', 'pending')
-
-  const { data: monthOrders } = await supabase
-    .from('orders')
-    .select('total_value')
-    .eq('supplier_id', supplierId)
-    .gte('created_at', startOfMonth)
-
-  const monthTotal = monthOrders?.reduce((sum, o) => sum + (o.total_value || 0), 0) || 0
-
-  const { data: recentOrders } = await supabase
-    .from('orders')
-    .select('*, buyer:buyers(*), items:order_items(*)')
-    .eq('supplier_id', supplierId)
-    .order('created_at', { ascending: false })
-    .limit(5)
+  const monthTotal = monthRes.data?.reduce((sum, o) => sum + (o.total_value || 0), 0) || 0
 
   return {
-    todayCount: ordersToday?.length || 0,
-    pendingCount: ordersPending?.length || 0,
+    todayCount: todayRes.count || 0,
+    pendingCount: pendingRes.count || 0,
     monthTotal,
-    recentOrders: recentOrders || [],
+    recentOrders: recentRes.data || [],
   }
 }

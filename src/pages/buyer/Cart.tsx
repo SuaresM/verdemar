@@ -122,9 +122,7 @@ export default function Cart() {
   const { sections, updateNotes, updateDeliveryTime, clearSection } = useCartStore()
   const { buyer } = useAuthStore()
   const navigate = useNavigate()
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(
-    Object.fromEntries(sections.map((s) => [s.supplier.id, true]))
-  )
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({})
   const [checkoutSection, setCheckoutSection] = useState<CartSection | null>(null)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
 
