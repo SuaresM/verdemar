@@ -38,25 +38,12 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
-      // Load the profile. If it fails transiently (network, RLS hiccup),
-      // don't force a sign-out — the session is valid. The auth state listener
-      // will retry. Only treat a *confirmed null* profile as "not found".
+      // loadProfile is the single authority. If the profile fetch throws
+      // transiently (network, RLS hiccup, auth lock timeout), we keep the
+      // session and let the auth-state listener retry — do NOT force signOut.
+      // The layout components will either render the app (profile loaded)
+      // or redirect to /login (profile still null) on the next tick.
       await get().loadProfile()
-      // Re-fetch profile directly to tell transient error vs missing row apart.
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user) {
-        throw new Error('Sessão expirada. Tente novamente.')
-      }
-      if (!get().profile) {
-        // Only sign out + error if we got here with a valid session but truly no profile row.
-        const profile = await getProfile(session.user.id).catch(() => undefined)
-        if (profile === null) {
-          await supabase.auth.signOut()
-          set({ user: null, isLoading: false })
-          throw new Error('Perfil não encontrado. Por favor, cadastre-se novamente.')
-        }
-        // profile === undefined means the fetch failed — keep session and let the app retry.
-      }
     } finally {
       set({ isLoading: false })
     }

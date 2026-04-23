@@ -134,45 +134,56 @@ export function useOnboarding(role: OnboardingRole) {
 
     // Small delay to ensure DOM elements are rendered
     const timer = setTimeout(() => {
-      const steps = getSteps(role)
+      try {
+        const steps = getSteps(role)
 
-      // Filter out steps whose elements don't exist yet
-      const validSteps = steps.filter((step) =>
-        typeof step.element === 'string' ? document.querySelector(step.element) : true
-      )
+        // Filter out steps whose elements don't exist yet
+        const validSteps = steps.filter((step) =>
+          typeof step.element === 'string' ? document.querySelector(step.element) : true
+        )
 
-      if (validSteps.length === 0) return
+        if (validSteps.length === 0) return
 
-      const intro = introJs()
-      introRef.current = intro
+        const intro = introJs()
+        introRef.current = intro
 
-      intro.setOptions({
-        steps: validSteps,
-        nextLabel: 'Próximo',
-        prevLabel: 'Anterior',
-        doneLabel: 'Entendi!',
-        skipLabel: 'Pular',
-        showProgress: true,
-        showBullets: false,
-        exitOnOverlayClick: false,
-        disableInteraction: true,
-      })
+        intro.setOptions({
+          steps: validSteps,
+          nextLabel: 'Próximo',
+          prevLabel: 'Anterior',
+          doneLabel: 'Entendi!',
+          skipLabel: 'Pular',
+          showProgress: true,
+          showBullets: false,
+          exitOnOverlayClick: false,
+          disableInteraction: true,
+        })
 
-      intro.oncomplete(() => {
+        intro.oncomplete(() => {
+          localStorage.setItem(key, '1')
+        })
+
+        intro.onexit(() => {
+          localStorage.setItem(key, '1')
+        })
+
+        intro.start()
+      } catch (err) {
+        // intro.js sometimes throws on DOM mutations or re-mounts — never
+        // let the onboarding tour crash the whole page.
+        console.warn('Onboarding tour skipped:', err)
         localStorage.setItem(key, '1')
-      })
-
-      intro.onexit(() => {
-        localStorage.setItem(key, '1')
-      })
-
-      intro.start()
+      }
     }, 800)
 
     return () => {
       clearTimeout(timer)
-      if (introRef.current) {
-        introRef.current.exit(true)
+      try {
+        if (introRef.current) {
+          introRef.current.exit(true)
+        }
+      } catch {
+        // Ignore — intro may already be detached (StrictMode double-mount).
       }
     }
   }, [role])

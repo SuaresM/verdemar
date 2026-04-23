@@ -187,7 +187,12 @@ export default function App() {
           },
         }}
       />
-      <AppRoutes />
+      {/* Top-level boundary: catches lazy-chunk load failures and any render
+          error above the layout boundaries. Without this, an error anywhere
+          outside <Outlet/> leaves users on a blank white screen. */}
+      <ErrorBoundary>
+        <AppRoutes />
+      </ErrorBoundary>
     </BrowserRouter>
   )
 }
