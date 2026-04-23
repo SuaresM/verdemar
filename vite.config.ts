@@ -45,10 +45,24 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // On new deploys, take over immediately so users don't get stuck on
+        // a stale cached bundle (a common source of "I can only log in on
+        // incognito" bug reports).
+        clientsClaim: true,
+        skipWaiting: true,
+        cleanupOutdatedCaches: true,
+        // Auth endpoints must NEVER be served from cache — they need fresh
+        // tokens every time. Navigation requests also bypass the SW when an
+        // auth request is in flight to avoid stale session issues.
+        navigateFallbackDenylist: [/^\/auth\//, /supabase\.co/],
         runtimeCaching: [
           {
+            // Product images: StaleWhileRevalidate (not CacheFirst) so that
+            // new uploads with the same URL still refresh in background.
+            // Logos/banners now use unique per-upload filenames so this cache
+            // never serves the wrong version.
             urlPattern: /^https:\/\/.*supabase\.co\/storage\/.*/,
-            handler: 'CacheFirst',
+            handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'supabase-images',
               expiration: {
@@ -57,17 +71,10 @@ export default defineConfig({
               },
             },
           },
-          {
-            urlPattern: /^https:\/\/.*supabase\.co\/rest\/.*/,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'supabase-api',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 5,
-              },
-            },
-          },
+          // NOTE: Supabase REST (`/rest/*`) and Auth (`/auth/*`) endpoints are
+          // deliberately NOT cached — caching them served stale profiles and
+          // broke login in regular browser tabs (worked in incognito where the
+          // SW hadn't registered yet).
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/,
             handler: 'CacheFirst',

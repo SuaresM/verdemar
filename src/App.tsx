@@ -142,14 +142,33 @@ export default function App() {
   const { loadProfile, setUser } = useAuthStore()
 
   useEffect(() => {
+    // Initial load — may show PageLoader while bootstrapping.
     loadProfile()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null)
-      if (session?.user) {
-        loadProfile()
-      } else {
-        useAuthStore.setState({ isLoading: false })
+      // Only react to events that *change* the authenticated state. Silently
+      // ignore TOKEN_REFRESHED and USER_UPDATED — they fire frequently and
+      // would otherwise re-fetch profile + remount the whole app, causing
+      // noticeable page jank.
+      if (event === 'SIGNED_OUT') {
+        useAuthStore.setState({
+          user: null,
+          profile: null,
+          buyer: null,
+          supplier: null,
+          isLoading: false,
+        })
+        return
+      }
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+        if (session?.user) {
+          // Silent reload: don't flip isLoading, don't unmount the tree.
+          const already = useAuthStore.getState().profile?.id === session.user.id
+          loadProfile({ silent: already })
+        } else {
+          useAuthStore.setState({ isLoading: false })
+        }
       }
     })
 

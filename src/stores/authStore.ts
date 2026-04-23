@@ -12,8 +12,10 @@ interface AuthStore {
   isLoading: boolean
   signIn: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
-  loadProfile: () => Promise<void>
+  loadProfile: (opts?: { silent?: boolean }) => Promise<void>
   setUser: (user: User | null) => void
+  setSupplier: (supplier: Supplier) => void
+  setBuyer: (buyer: Buyer) => void
 }
 
 // Module-level mutex: prevents concurrent loadProfile() calls from racing
@@ -28,17 +30,32 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   isLoading: true,
 
   setUser: (user) => set({ user }),
+  setSupplier: (supplier) => set({ supplier }),
+  setBuyer: (buyer) => set({ buyer }),
 
   signIn: async (email, password) => {
     set({ isLoading: true })
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
+      // Load the profile. If it fails transiently (network, RLS hiccup),
+      // don't force a sign-out — the session is valid. The auth state listener
+      // will retry. Only treat a *confirmed null* profile as "not found".
       await get().loadProfile()
+      // Re-fetch profile directly to tell transient error vs missing row apart.
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) {
+        throw new Error('Sessão expirada. Tente novamente.')
+      }
       if (!get().profile) {
-        await supabase.auth.signOut()
-        set({ user: null, isLoading: false })
-        throw new Error('Perfil não encontrado. Por favor, cadastre-se novamente.')
+        // Only sign out + error if we got here with a valid session but truly no profile row.
+        const profile = await getProfile(session.user.id).catch(() => undefined)
+        if (profile === null) {
+          await supabase.auth.signOut()
+          set({ user: null, isLoading: false })
+          throw new Error('Perfil não encontrado. Por favor, cadastre-se novamente.')
+        }
+        // profile === undefined means the fetch failed — keep session and let the app retry.
       }
     } finally {
       set({ isLoading: false })
@@ -50,10 +67,13 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
     set({ user: null, profile: null, buyer: null, supplier: null })
   },
 
-  loadProfile: async () => {
+  loadProfile: async (opts) => {
     if (loadProfileInFlight) return loadProfileInFlight
+    const silent = opts?.silent === true
     loadProfileInFlight = (async () => {
-      set({ isLoading: true })
+      // Only flip isLoading on non-silent (initial) loads. Background refreshes
+      // triggered by onAuthStateChange must NOT remount the whole app.
+      if (!silent) set({ isLoading: true })
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (!session?.user) {

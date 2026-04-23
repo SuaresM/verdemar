@@ -48,12 +48,14 @@ export async function uploadProductImage(file: File, supplierId: string): Promis
 
 export async function uploadSupplierLogo(file: File, supplierId: string): Promise<string> {
   const ext = getImageExtension(file)
-  const path = `${supplierId}/logo.${ext}`
+  // Unique filename per upload: avoids CDN/SW cache serving the old image when
+  // the path stayed the same (`logo.jpg`). The public URL changes on every save.
+  const path = `${supplierId}/logo-${Date.now()}.${ext}`
   return uploadImage(file, 'supplier-assets', path)
 }
 
 export async function uploadSupplierBanner(file: File, supplierId: string): Promise<string> {
   const ext = getImageExtension(file)
-  const path = `${supplierId}/banner.${ext}`
+  const path = `${supplierId}/banner-${Date.now()}.${ext}`
   return uploadImage(file, 'supplier-assets', path)
 }

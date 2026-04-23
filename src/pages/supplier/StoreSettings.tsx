@@ -36,7 +36,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>
 
 export default function StoreSettings() {
-  const { supplier, signOut } = useAuthStore()
+  const { supplier, signOut, setSupplier } = useAuthStore()
   const navigate = useNavigate()
   const [saving, setSaving] = useState(false)
   const [deliveryDays, setDeliveryDays] = useState<string[]>(supplier?.delivery_days || [])
@@ -94,7 +94,7 @@ export default function StoreSettings() {
       if (logoFile) logo_url = await uploadSupplierLogo(logoFile, supplier.id)
       if (bannerFile) banner_url = await uploadSupplierBanner(bannerFile, supplier.id)
 
-      await updateSupplier(supplier.id, {
+      const updates = {
         store_name: data.store_name,
         whatsapp: data.whatsapp.replace(/\D/g, ''),
         address_city: data.address_city,
@@ -107,10 +107,24 @@ export default function StoreSettings() {
         min_order_quantity: data.min_order_quantity ? parseInt(data.min_order_quantity) : undefined,
         logo_url: logo_url || undefined,
         banner_url: banner_url || undefined,
-      })
+      }
+
+      await updateSupplier(supplier.id, updates)
+
+      // Mirror the persisted changes into the auth store so the UI shows the
+      // new logo/banner (and other fields) without needing a page reload.
+      setSupplier({ ...supplier, ...updates })
+
+      // Clear the pending files so we don't re-upload on the next save and
+      // swap the blob preview for the just-uploaded public URL.
+      setLogoFile(null)
+      setBannerFile(null)
+      if (logo_url) setLogoPreview(logo_url)
+      if (banner_url) setBannerPreview(banner_url)
 
       toast.success('Loja atualizada!')
-    } catch {
+    } catch (err) {
+      console.error('Erro ao salvar loja:', err)
       toast.error('Erro ao salvar')
     } finally {
       setSaving(false)
