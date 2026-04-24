@@ -14,9 +14,15 @@ export default function AdminSuppliers() {
   const [filter, setFilter] = useState<Filter>('all')
 
   const load = async () => {
-    const data = await getAllSuppliers()
-    setSuppliers(data)
-    setLoading(false)
+    try {
+      const data = await getAllSuppliers()
+      setSuppliers(data ?? [])
+    } catch (err) {
+      console.error('Erro ao carregar fornecedores:', err)
+      setSuppliers([])
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { load() }, [])

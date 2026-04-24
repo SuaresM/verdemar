@@ -30,9 +30,16 @@ export default function Products() {
 
   const load = async () => {
     if (!supplier) return
-    const data = await getProductsBySupplier(supplier.id)
-    setProducts(data)
-    setLoading(false)
+    try {
+      const data = await getProductsBySupplier(supplier.id)
+      setProducts(data ?? [])
+    } catch (err) {
+      console.error('Erro ao carregar produtos:', err)
+      toast.error('Erro ao carregar produtos')
+      setProducts([])
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { load() }, [supplier])

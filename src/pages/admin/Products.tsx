@@ -32,11 +32,17 @@ export default function AdminProducts() {
   const [hasMore, setHasMore] = useState(false)
 
   const load = async () => {
-    const result = await getAllProducts(0)
-    setProducts(result.data)
-    setHasMore(result.hasMore)
-    setPage(0)
-    setLoading(false)
+    try {
+      const result = await getAllProducts(0)
+      setProducts(result?.data ?? [])
+      setHasMore(result?.hasMore ?? false)
+      setPage(0)
+    } catch (err) {
+      console.error('Erro ao carregar produtos:', err)
+      setProducts([])
+    } finally {
+      setLoading(false)
+    }
   }
 
   const loadMore = async () => {

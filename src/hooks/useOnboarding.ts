@@ -178,12 +178,17 @@ export function useOnboarding(role: OnboardingRole) {
 
     return () => {
       clearTimeout(timer)
-      try {
-        if (introRef.current) {
-          introRef.current.exit(true)
+      const intro = introRef.current
+      if (intro) {
+        // Set the key before exit so it's always marked done on unmount,
+        // regardless of whether exit(true) fires the onexit callback.
+        localStorage.setItem(key, '1')
+        try {
+          intro.exit(true)
+        } catch {
+          // Ignore — intro may already be detached (StrictMode double-mount).
         }
-      } catch {
-        // Ignore — intro may already be detached (StrictMode double-mount).
+        introRef.current = null
       }
     }
   }, [role])

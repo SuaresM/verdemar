@@ -34,11 +34,17 @@ export default function SupplierProfile() {
 
   useEffect(() => {
     if (!id) return
-    Promise.all([getSupplierById(id), getProductsBySupplier(id)]).then(([sup, prods]) => {
-      setSupplier(sup)
-      setProducts(prods)
-      setLoading(false)
-    })
+    Promise.all([getSupplierById(id), getProductsBySupplier(id)])
+      .then(([sup, prods]) => {
+        setSupplier(sup)
+        setProducts(prods ?? [])
+      })
+      .catch((err) => {
+        console.error('Erro ao carregar fornecedor:', err)
+      })
+      .finally(() => {
+        setLoading(false)
+      })
   }, [id])
 
   if (loading) return <PageLoader />

@@ -36,7 +36,7 @@ function BuyerLayout() {
   if (profile.role === 'admin') return <Navigate to="/admin/dashboard" replace />
   if (profile.role !== 'buyer') return <Navigate to="/supplier/dashboard" replace />
   return (
-    <div className="flex flex-col min-h-screen max-w-lg mx-auto relative">
+    <div className="flex flex-col h-dvh max-w-lg mx-auto relative">
       <div className="flex-1 overflow-y-auto pb-16">
         <ErrorBoundary>
           <Outlet />
@@ -53,7 +53,7 @@ function SupplierLayout() {
   if (!profile) return <Navigate to="/login" replace />
   if (profile.role !== 'supplier') return <Navigate to="/" replace />
   return (
-    <div className="flex flex-col min-h-screen max-w-lg mx-auto relative">
+    <div className="flex flex-col h-dvh max-w-lg mx-auto relative">
       <div className="flex-1 overflow-y-auto pb-16">
         <ErrorBoundary>
           <Outlet />
@@ -70,7 +70,7 @@ function AdminLayout() {
   if (!profile) return <Navigate to="/login" replace />
   if (profile.role !== 'admin') return <Navigate to="/" replace />
   return (
-    <div className="flex flex-col min-h-screen max-w-lg mx-auto relative">
+    <div className="flex flex-col h-dvh max-w-lg mx-auto relative">
       <div className="flex-1 overflow-y-auto pb-16">
         <ErrorBoundary>
           <Outlet />

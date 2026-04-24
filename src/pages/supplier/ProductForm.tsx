@@ -81,26 +81,33 @@ export default function ProductForm() {
 
   useEffect(() => {
     if (!isEdit || !id) return
-    getProductById(id).then((product) => {
-      if (!product) return
-      setExistingImageUrl(product.image_url || '')
-      reset({
-        name: product.name,
-        description: product.description || '',
-        category: product.category as FormData['category'],
-        sale_unit: product.sale_unit as FormData['sale_unit'],
-        box_weight_kg: product.box_weight_kg != null ? String(product.box_weight_kg) : '',
-        box_unit_quantity: product.box_unit_quantity != null ? String(product.box_unit_quantity) : '',
-        box_price: product.box_price != null ? String(product.box_price) : '',
-        price_per_kg: product.price_per_kg != null ? String(product.price_per_kg) : '',
-        price_per_unit: product.price_per_unit != null ? String(product.price_per_unit) : '',
-        unit_description: product.unit_description || '',
-        stock_quantity: product.stock_quantity != null ? String(product.stock_quantity) : '',
-        is_available: product.is_available,
-        is_featured: product.is_featured,
+    getProductById(id)
+      .then((product) => {
+        if (!product) return
+        setExistingImageUrl(product.image_url || '')
+        reset({
+          name: product.name,
+          description: product.description || '',
+          category: product.category as FormData['category'],
+          sale_unit: product.sale_unit as FormData['sale_unit'],
+          box_weight_kg: product.box_weight_kg != null ? String(product.box_weight_kg) : '',
+          box_unit_quantity: product.box_unit_quantity != null ? String(product.box_unit_quantity) : '',
+          box_price: product.box_price != null ? String(product.box_price) : '',
+          price_per_kg: product.price_per_kg != null ? String(product.price_per_kg) : '',
+          price_per_unit: product.price_per_unit != null ? String(product.price_per_unit) : '',
+          unit_description: product.unit_description || '',
+          stock_quantity: product.stock_quantity != null ? String(product.stock_quantity) : '',
+          is_available: product.is_available,
+          is_featured: product.is_featured,
+        })
       })
-      setLoading(false)
-    })
+      .catch((err) => {
+        console.error('Erro ao carregar produto:', err)
+        toast.error('Erro ao carregar produto')
+      })
+      .finally(() => {
+        setLoading(false)
+      })
   }, [id, isEdit, reset])
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
