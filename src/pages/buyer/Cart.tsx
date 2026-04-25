@@ -55,6 +55,22 @@ function isSectionValid(section: CartSection): boolean {
   return true
 }
 
+function getCheckoutLabel(section: CartSection): string {
+  const minValue = section.supplier.min_order_value
+  const minQty = section.supplier.min_order_quantity
+  if (minValue && section.sectionTotal < minValue) {
+    return `Adicione mais ${formatCurrency(minValue - section.sectionTotal)} para finalizar`
+  }
+  if (minQty) {
+    const totalItems = section.items.reduce((sum, i) => sum + i.quantity, 0)
+    if (totalItems < minQty) {
+      const diff = minQty - totalItems
+      return `Adicione mais ${diff} ${diff === 1 ? 'item' : 'itens'} para finalizar`
+    }
+  }
+  return `Finalizar pedido com ${section.supplier.store_name}`
+}
+
 interface CheckoutDrawerProps {
   section: CartSection
   onConfirm: () => void
@@ -279,9 +295,9 @@ export default function Cart() {
                   <button
                     onClick={() => setCheckoutSection(section)}
                     disabled={!isValid}
-                    className="w-full bg-primary text-white font-bold py-3 rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="w-full bg-primary text-white font-bold py-3 rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed text-sm"
                   >
-                    Finalizar pedido com {section.supplier.store_name}
+                    {getCheckoutLabel(section)}
                   </button>
                 </div>
               )}
