@@ -1,4 +1,4 @@
-import type { OrderItem, Order, Buyer, SaleUnit } from '../types'
+import type { OrderItem, Order, Buyer, Supplier, SaleUnit, OrderStatus } from '../types'
 
 export function formatCurrency(value: number): string {
   return new Intl.NumberFormat('pt-BR', {
@@ -84,6 +84,50 @@ ${itemsList}
 
 Pedido realizado via VerdeMar`
   )
+}
+
+export function formatOrderStatusMessage(
+  status: OrderStatus,
+  order: Order,
+  supplier: Supplier
+): string {
+  const total = formatCurrency(order.total_value)
+  const storeName = supplier.store_name
+
+  const messages: Partial<Record<OrderStatus, string>> = {
+    confirmed: `✅ *Pedido Confirmado!*\n\n🏪 Fornecedor: ${storeName}\n💰 Total: ${total}\n\nSeu pedido foi confirmado e está sendo preparado. Em breve você receberá mais atualizações.\n\n_VerdeMar 🌿_`,
+    in_delivery: `🚚 *Pedido a Caminho!*\n\n🏪 Fornecedor: ${storeName}\n💰 Total: ${total}\n\nSeu pedido saiu para entrega! Fique de olho. 😊\n\n_VerdeMar 🌿_`,
+    delivered: `🎉 *Pedido Entregue!*\n\n🏪 Fornecedor: ${storeName}\n💰 Total: ${total}\n\nSeu pedido foi entregue com sucesso. Obrigado pela parceria!\n\n_VerdeMar 🌿_`,
+    cancelled: `❌ *Pedido Cancelado*\n\n🏪 Fornecedor: ${storeName}\n💰 Total: ${total}\n\nInfelizmente seu pedido foi cancelado. Entre em contato com o fornecedor para mais informações.\n\n_VerdeMar 🌿_`,
+  }
+
+  const text = messages[status] ?? `Atualização do seu pedido na ${storeName}: ${status}`
+  return encodeURIComponent(text)
+}
+
+export function formatOrderEditMessage(
+  order: Order,
+  supplier: Supplier,
+  editedItems: Array<{ product_name: string; quantity: number; subtotal: number; removed?: boolean }>,
+  newTotal: number
+): string {
+  const storeName = supplier.store_name
+  const itemLines = editedItems
+    .map((item) =>
+      item.removed
+        ? `• ~~${item.product_name}~~ — *Removido*`
+        : `• ${item.quantity}x ${item.product_name} — ${formatCurrency(item.subtotal)}`
+    )
+    .join('\n')
+
+  const text =
+    `📝 *Pedido Atualizado pelo Fornecedor*\n\n` +
+    `🏪 Fornecedor: ${storeName}\n\n` +
+    `🛍 *Itens atualizados:*\n${itemLines}\n\n` +
+    `💰 *Novo Total: ${formatCurrency(newTotal)}*\n\n` +
+    `Caso tenha dúvidas, entre em contato com o fornecedor.\n\n_VerdeMar 🌿_`
+
+  return encodeURIComponent(text)
 }
 
 export function formatDate(dateString: string): string {

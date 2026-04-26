@@ -9,7 +9,6 @@ import { EmptyState } from '../../components/shared/EmptyState'
 import { Header } from '../../components/layout/Header'
 import { formatCurrency, formatWhatsAppMessage } from '../../utils'
 import { createOrder } from '../../services/supabase'
-import { openWhatsApp } from '../../services/whatsapp'
 import type { CartSection } from '../../types'
 
 function SectionMinOrderStatus({ section }: { section: CartSection }) {
@@ -141,6 +140,7 @@ export default function Cart() {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({})
   const [checkoutSection, setCheckoutSection] = useState<CartSection | null>(null)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const [checkoutSuccess, setCheckoutSuccess] = useState<{ whatsappUrl: string; supplierName: string } | null>(null)
 
   const totalAll = sections.reduce((sum, s) => sum + s.sectionTotal, 0)
 
@@ -174,7 +174,7 @@ export default function Cart() {
           notes: checkoutSection.notes,
           delivery_time_preference: checkoutSection.deliveryTimePreference,
           payment_method: 'cash_on_delivery',
-          whatsapp_sent: true,
+          whatsapp_sent: false,
         },
         itemsData
       )
@@ -191,11 +191,12 @@ export default function Cart() {
         orderItems as import('../../types').OrderItem[]
       )
 
-      openWhatsApp(checkoutSection.supplier.whatsapp, message)
+      const phone = checkoutSection.supplier.whatsapp.replace(/\D/g, '')
+      const whatsappUrl = `https://wa.me/${phone}?text=${message}`
+
       clearSection(checkoutSection.supplier.id)
       setCheckoutSection(null)
-      toast.success('Pedido enviado com sucesso!')
-      navigate('/orders')
+      setCheckoutSuccess({ whatsappUrl, supplierName: checkoutSection.supplier.store_name })
     } catch (err) {
       toast.error('Erro ao finalizar pedido. Tente novamente.')
       console.error(err)
@@ -322,6 +323,54 @@ export default function Cart() {
           onClose={() => setCheckoutSection(null)}
           loading={checkoutLoading}
         />
+      )}
+
+      {/* Success screen */}
+      {checkoutSuccess && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white px-6">
+          <div className="text-6xl mb-4">🎉</div>
+          <h2 className="text-2xl font-extrabold text-gray-900 mb-2 text-center">
+            Pedido registrado!
+          </h2>
+          <p className="text-gray-500 text-center text-sm mb-6">
+            Seu pedido foi salvo com sucesso. Agora você precisa{' '}
+            <span className="font-bold text-gray-700">enviar a mensagem no WhatsApp</span>{' '}
+            para que o fornecedor{' '}
+            <span className="font-bold text-gray-700">{checkoutSuccess.supplierName}</span>{' '}
+            receba e confirme seu pedido.
+          </p>
+
+          <div className="w-full space-y-3">
+            <a
+              href={checkoutSuccess.whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
+                setTimeout(() => {
+                  setCheckoutSuccess(null)
+                  navigate('/orders')
+                }, 800)
+              }}
+              className="flex items-center justify-center gap-3 w-full bg-green-500 text-white font-bold py-4 rounded-2xl text-base shadow-lg active:scale-95 transition-transform"
+            >
+              <span className="text-xl">💬</span>
+              Enviar pedido no WhatsApp
+            </a>
+            <p className="text-xs text-center text-gray-400">
+              Toque no botão acima — isso abrirá o WhatsApp com a mensagem pronta.
+              Basta enviar!
+            </p>
+            <button
+              onClick={() => {
+                setCheckoutSuccess(null)
+                navigate('/orders')
+              }}
+              className="w-full py-3 text-gray-400 text-sm font-semibold"
+            >
+              Pular e ver meus pedidos
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )

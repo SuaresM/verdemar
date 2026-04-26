@@ -254,6 +254,37 @@ export async function updateOrderStatus(orderId: string, status: string) {
   if (error) throw error
 }
 
+export async function updateOrderItemsAndTotal(
+  orderId: string,
+  updatedItems: Array<{ id: string; quantity: number; subtotal: number }>
+): Promise<number> {
+  const toRemove = updatedItems.filter((i) => i.quantity === 0).map((i) => i.id)
+  const toUpdate = updatedItems.filter((i) => i.quantity > 0)
+
+  if (toRemove.length > 0) {
+    const { error } = await supabase.from('order_items').delete().in('id', toRemove)
+    if (error) throw error
+  }
+
+  for (const item of toUpdate) {
+    const { error } = await supabase
+      .from('order_items')
+      .update({ quantity: item.quantity, subtotal: item.subtotal })
+      .eq('id', item.id)
+    if (error) throw error
+  }
+
+  const newTotal = toUpdate.reduce((sum, i) => sum + i.subtotal, 0)
+
+  const { error: orderErr } = await supabase
+    .from('orders')
+    .update({ total_value: newTotal, updated_at: new Date().toISOString() })
+    .eq('id', orderId)
+  if (orderErr) throw orderErr
+
+  return newTotal
+}
+
 // ---- ADMIN ----
 export async function getAllSuppliers(): Promise<(Supplier & { profile?: Profile })[]> {
   const { data, error } = await supabase
