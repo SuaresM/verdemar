@@ -118,7 +118,7 @@ function CheckoutDrawer({ section, onConfirm, onClose, loading }: CheckoutDrawer
             {loading ? (
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
-              <>Confirmar e Enviar WhatsApp</>
+              <>Confirmar Pedido</>
             )}
           </button>
           <button
@@ -345,12 +345,7 @@ export default function Cart() {
               href={checkoutSuccess.whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => {
-                setTimeout(() => {
-                  setCheckoutSuccess(null)
-                  navigate('/orders')
-                }, 800)
-              }}
+              onClick={() => setCheckoutSuccess(null)}
               className="flex items-center justify-center gap-3 w-full bg-green-500 text-white font-bold py-4 rounded-2xl text-base shadow-lg active:scale-95 transition-transform"
             >
               <span className="text-xl">💬</span>
@@ -367,7 +362,7 @@ export default function Cart() {
               }}
               className="w-full py-3 text-gray-400 text-sm font-semibold"
             >
-              Pular e ver meus pedidos
+              Ver meus pedidos
             </button>
           </div>
         </div>

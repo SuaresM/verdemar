@@ -1,9 +1,8 @@
 import { Minus, Plus, Trash2 } from 'lucide-react'
 import type { CartItem as CartItemType } from '../../types'
 import { useCartStore } from '../../stores/cartStore'
-import { formatCurrency } from '../../utils'
+import { formatCurrency, getSaleUnitLabel } from '../../utils'
 import { ImageSkeleton } from '../shared/ImageSkeleton'
-import { getSaleUnitLabel } from '../../utils'
 
 interface CartItemProps {
   item: CartItemType

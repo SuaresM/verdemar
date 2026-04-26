@@ -76,11 +76,21 @@ function EditOrderModal({ order, onClose, onSaved }: EditOrderModalProps) {
         removed: item.editQty === 0,
       }))
 
-      const message = formatOrderEditMessage(order, supplier, editedForMessage, newTotalFromDb)
-      openWhatsApp(order.buyer.contact_phone, message)
+      const message = formatOrderEditMessage(supplier, editedForMessage, newTotalFromDb)
+      const whatsappUrl = `https://wa.me/${order.buyer.contact_phone.replace(/\D/g, '')}?text=${message}`
 
-      toast.success('Pedido atualizado! Notificando comprador via WhatsApp...')
       onSaved(newTotalFromDb, items)
+
+      // Show persistent toast so supplier taps the link (window.open after async
+      // is blocked by browsers/PWA — an <a> tag opened by the user is not).
+      toast.success('Pedido atualizado!', {
+        description: 'Toque abaixo para notificar o comprador via WhatsApp.',
+        action: {
+          label: '💬 Abrir WhatsApp',
+          onClick: () => window.open(whatsappUrl, '_blank'),
+        },
+        duration: 15000,
+      })
     } catch (err) {
       console.error(err)
       toast.error('Erro ao atualizar pedido')

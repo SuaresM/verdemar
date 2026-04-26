@@ -5,6 +5,7 @@ import { PageLoader } from '../../components/shared/LoadingSpinner'
 import { formatCurrency } from '../../utils'
 import { Users, Store, Package, ClipboardList } from 'lucide-react'
 import { useOnboarding } from '../../hooks/useOnboarding'
+import type { Order } from '../../types'
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
@@ -16,7 +17,7 @@ export default function AdminDashboard() {
     buyersCount: 0,
     productsCount: 0,
     ordersCount: 0,
-    recentOrders: [] as any[],
+    recentOrders: [] as Order[],
   })
 
   useEffect(() => {
@@ -56,7 +57,7 @@ export default function AdminDashboard() {
           <div>
             <h2 className="font-bold text-gray-900 mb-3">Pedidos Recentes</h2>
             <div className="space-y-2">
-              {stats.recentOrders.map((order: any) => (
+              {stats.recentOrders.map((order) => (
                 <div key={order.id} className="bg-white rounded-2xl shadow-sm p-4">
                   <div className="flex items-center justify-between mb-1">
                     <p className="font-semibold text-sm text-gray-800">

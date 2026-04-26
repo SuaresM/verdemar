@@ -21,10 +21,10 @@ export default function ProductDetail() {
 
   useEffect(() => {
     if (!id) return
-    getProductById(id).then((p) => {
-      setProduct(p)
-      setLoading(false)
-    })
+    getProductById(id)
+      .then((p) => setProduct(p))
+      .catch(() => toast.error('Erro ao carregar produto'))
+      .finally(() => setLoading(false))
   }, [id])
 
   const handleAddToCart = () => {

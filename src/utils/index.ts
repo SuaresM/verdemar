@@ -106,7 +106,6 @@ export function formatOrderStatusMessage(
 }
 
 export function formatOrderEditMessage(
-  order: Order,
   supplier: Supplier,
   editedItems: Array<{ product_name: string; quantity: number; subtotal: number; removed?: boolean }>,
   newTotal: number
@@ -115,7 +114,7 @@ export function formatOrderEditMessage(
   const itemLines = editedItems
     .map((item) =>
       item.removed
-        ? `• ~~${item.product_name}~~ — *Removido*`
+        ? `• ~${item.product_name}~ — *Removido*`
         : `• ${item.quantity}x ${item.product_name} — ${formatCurrency(item.subtotal)}`
     )
     .join('\n')

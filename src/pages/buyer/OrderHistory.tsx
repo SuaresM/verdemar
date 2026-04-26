@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
+import { toast } from 'sonner'
 import { useAuthStore } from '../../stores/authStore'
 import { getOrdersByBuyer } from '../../services/supabase'
 import type { Order, OrderStatus } from '../../types'
@@ -25,10 +26,10 @@ export default function OrderHistory() {
 
   useEffect(() => {
     if (!buyer) return
-    getOrdersByBuyer(buyer.id).then((data) => {
-      setOrders(data)
-      setLoading(false)
-    })
+    getOrdersByBuyer(buyer.id)
+      .then((data) => setOrders(data))
+      .catch(() => toast.error('Erro ao carregar pedidos'))
+      .finally(() => setLoading(false))
   }, [buyer])
 
   const filteredOrders = tab === 'all' ? orders : orders.filter((o) => o.status === tab)
