@@ -40,7 +40,7 @@ export default function Dashboard() {
       <div className="bg-white px-4 pt-4 pb-4 border-b border-gray-100">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-2xl font-extrabold text-primary">🌿 VerdeMar</p>
+            <p className="text-2xl font-extrabold text-primary">🌿 Rota Verde</p>
             <p className="text-sm text-gray-500 mt-0.5">Painel do Fornecedor</p>
           </div>
           <button

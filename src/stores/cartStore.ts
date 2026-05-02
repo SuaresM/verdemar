@@ -149,7 +149,7 @@ export const useCartStore = create<CartStore>()(
       },
     }),
     {
-      name: 'verdemar-cart',
+      name: 'rota-verde-cart',
     }
   )
 )

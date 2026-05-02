@@ -16,8 +16,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'VerdeMar - Marketplace B2B de Hortifrúti',
-        short_name: 'VerdeMar',
+        name: 'Rota Verde - Marketplace B2B de Hortifrúti',
+        short_name: 'Rota Verde',
         description: 'Marketplace B2B de hortifrúti para atacado',
         theme_color: '#2d6a4f',
         background_color: '#f8f9fa',

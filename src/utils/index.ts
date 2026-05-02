@@ -65,7 +65,7 @@ export function formatWhatsAppMessage(order: Order, buyer: Buyer, items: OrderIt
   } - ${buyer.address_neighborhood}, ${buyer.address_city}/${buyer.address_state} - CEP: ${buyer.address_zip}`
 
   return encodeURIComponent(
-    `🛒 NOVO PEDIDO - VerdeMar
+    `🛒 NOVO PEDIDO - Rota Verde
 ━━━━━━━━━━━━━━━━━━━
 
 👤 Cliente: ${buyer.company_name}
@@ -82,7 +82,7 @@ ${itemsList}
 ⏰ Horário preferencial: ${order.delivery_time_preference || 'Não informado'}
 📝 Observações: ${order.notes || 'Nenhuma'}
 
-Pedido realizado via VerdeMar`
+Pedido realizado via Rota Verde`
   )
 }
 
@@ -95,10 +95,10 @@ export function formatOrderStatusMessage(
   const storeName = supplier.store_name
 
   const messages: Partial<Record<OrderStatus, string>> = {
-    confirmed: `✅ *Pedido Confirmado!*\n\n🏪 Fornecedor: ${storeName}\n💰 Total: ${total}\n\nSeu pedido foi confirmado e está sendo preparado. Em breve você receberá mais atualizações.\n\n_VerdeMar 🌿_`,
-    in_delivery: `🚚 *Pedido a Caminho!*\n\n🏪 Fornecedor: ${storeName}\n💰 Total: ${total}\n\nSeu pedido saiu para entrega! Fique de olho. 😊\n\n_VerdeMar 🌿_`,
-    delivered: `🎉 *Pedido Entregue!*\n\n🏪 Fornecedor: ${storeName}\n💰 Total: ${total}\n\nSeu pedido foi entregue com sucesso. Obrigado pela parceria!\n\n_VerdeMar 🌿_`,
-    cancelled: `❌ *Pedido Cancelado*\n\n🏪 Fornecedor: ${storeName}\n💰 Total: ${total}\n\nInfelizmente seu pedido foi cancelado. Entre em contato com o fornecedor para mais informações.\n\n_VerdeMar 🌿_`,
+    confirmed: `✅ *Pedido Confirmado!*\n\n🏪 Fornecedor: ${storeName}\n💰 Total: ${total}\n\nSeu pedido foi confirmado e está sendo preparado. Em breve você receberá mais atualizações.\n\n_Rota Verde 🌿_`,
+    in_delivery: `🚚 *Pedido a Caminho!*\n\n🏪 Fornecedor: ${storeName}\n💰 Total: ${total}\n\nSeu pedido saiu para entrega! Fique de olho. 😊\n\n_Rota Verde 🌿_`,
+    delivered: `🎉 *Pedido Entregue!*\n\n🏪 Fornecedor: ${storeName}\n💰 Total: ${total}\n\nSeu pedido foi entregue com sucesso. Obrigado pela parceria!\n\n_Rota Verde 🌿_`,
+    cancelled: `❌ *Pedido Cancelado*\n\n🏪 Fornecedor: ${storeName}\n💰 Total: ${total}\n\nInfelizmente seu pedido foi cancelado. Entre em contato com o fornecedor para mais informações.\n\n_Rota Verde 🌿_`,
   }
 
   const text = messages[status] ?? `Atualização do seu pedido na ${storeName}: ${status}`
@@ -124,7 +124,7 @@ export function formatOrderEditMessage(
     `🏪 Fornecedor: ${storeName}\n\n` +
     `🛍 *Itens atualizados:*\n${itemLines}\n\n` +
     `💰 *Novo Total: ${formatCurrency(newTotal)}*\n\n` +
-    `Caso tenha dúvidas, entre em contato com o fornecedor.\n\n_VerdeMar 🌿_`
+    `Caso tenha dúvidas, entre em contato com o fornecedor.\n\n_Rota Verde 🌿_`
 
   return encodeURIComponent(text)
 }

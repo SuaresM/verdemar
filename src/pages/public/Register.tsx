@@ -192,7 +192,7 @@ export default function Register() {
             <ArrowLeft size={20} />
           </button>
         ) : (
-          <div className="text-xl font-extrabold text-primary">VerdeMar</div>
+          <div className="text-xl font-extrabold text-primary">Rota Verde</div>
         )}
         <span className="text-sm font-semibold text-gray-500">
           {step === 1 ? 'Criar conta' : role === 'buyer' ? 'Dados do Comprador' : 'Dados do Fornecedor'}
@@ -203,7 +203,7 @@ export default function Register() {
         {/* Step 1 - Role selection */}
         {step === 1 && (
           <div>
-            <h2 className="text-2xl font-extrabold text-gray-900 mb-2">Como você quer usar o VerdeMar?</h2>
+            <h2 className="text-2xl font-extrabold text-gray-900 mb-2">Como você quer usar o Rota Verde?</h2>
             <p className="text-gray-500 text-sm mb-8">Escolha o seu perfil para continuar</p>
 
             <div className="space-y-4">

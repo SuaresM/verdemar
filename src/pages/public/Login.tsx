@@ -55,7 +55,7 @@ export default function Login() {
         {/* Logo */}
         <div className="mb-8 text-center">
           <div className="text-6xl mb-3">🌿</div>
-          <h1 className="text-3xl font-extrabold text-primary">VerdeMar</h1>
+          <h1 className="text-3xl font-extrabold text-primary">Rota Verde</h1>
           <p className="text-gray-500 mt-1 text-sm">Marketplace B2B de Hortifrúti</p>
         </div>
 

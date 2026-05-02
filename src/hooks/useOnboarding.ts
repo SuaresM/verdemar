@@ -12,14 +12,14 @@ interface OnboardingStep {
   position: TooltipPosition
 }
 
-const STORAGE_KEY_PREFIX = 'verdemar_onboarding_done_'
+const STORAGE_KEY_PREFIX = 'rota_verde_onboarding_done_'
 
 function getSteps(role: OnboardingRole): OnboardingStep[] {
   if (role === 'buyer') {
     return [
       {
         element: '#onboarding-welcome',
-        intro: 'Bem-vindo ao VerdeMar! Aqui você encontra os melhores fornecedores de hortifrúti para o seu negócio.',
+        intro: 'Bem-vindo à Rota Verde! Aqui você encontra os melhores fornecedores de hortifrúti para o seu negócio.',
         position: 'bottom',
       },
       {

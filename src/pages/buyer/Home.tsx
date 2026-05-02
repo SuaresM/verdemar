@@ -60,7 +60,7 @@ export default function Home() {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-1 text-sm text-gray-500 mb-0.5">
-              <span className="text-2xl font-extrabold text-primary">🌿 VerdeMar</span>
+              <span className="text-2xl font-extrabold text-primary">🌿 Rota Verde</span>
             </div>
             {buyer && (buyer.address_city || buyer.address_state) && (
               <div className="flex items-center gap-1 text-xs text-gray-400">

@@ -1,15 +1,16 @@
-# VerdeMar — Documento Mestre de Handoff
+# Rota Verde — Documento Mestre de Handoff
 
 > Documento único, autocontido, projetado para que qualquer pessoa (ou um novo agente) consiga entender o projeto, recuperá‑lo, depurá‑lo ou reiniciá‑lo do zero **sem depender de contexto externo**.
 >
-> Última atualização: 2026-04-19
-> Último commit incluído: `a61d008` — *fix: prevent iOS auto-zoom on input focus and fix mobile viewport*
+> Última atualização: 2026-05-01
+> Último commit incluído: `9054bd9` — *fix: full codebase code review — 8 issues resolved*
+> Commit anterior: `dac3a61` — *feat: supplier→buyer WhatsApp notifications, order editing modal, cart checkout success screen*
 
 ---
 
 ## 1. Visão Geral do Produto
 
-**VerdeMar** é um marketplace B2B mobile-first (PWA) de hortifrúti para atacado. Três papéis de usuário:
+**Rota Verde** é um marketplace B2B mobile-first (PWA) de hortifrúti para atacado. Três papéis de usuário:
 
 | Papel | O que faz |
 |------|-----------|
@@ -109,7 +110,7 @@ Obs: `import.meta.env.VITE_*` é **inlinado em build-time**, não em runtime —
 | Senha | `verdemar123` |
 | Loja | Hortifrúti Verde Mar |
 | WhatsApp | `11999990002` |
-| Pedido mínimo | R$ 100 |
+| Pedido mínimo | R$ 100 (pode estar NULL no banco — resetado durante testes; inserir via §8.5 se necessário) |
 
 ---
 
@@ -189,7 +190,7 @@ Cronológico — esta seção existe para que ninguém repita os mesmos erros.
 
 ### 7.1 Schema do Supabase apontava para projeto antigo (Farmácia) ❌→✅
 **Sintoma**: `Não estou conseguindo logar`. Cadastros falhavam com erros de RLS e tabelas inexistentes.
-**Causa**: O projeto Supabase `vpomchqkkmjjeschanch` tinha originalmente schema de uma "Farmácia" (tabelas `units, addresses, categories, delivery_zones, inventory, settings`), incompatível com o código do VerdeMar.
+**Causa**: O projeto Supabase `vpomchqkkmjjeschanch` tinha originalmente schema de uma "Farmácia" (tabelas `units, addresses, categories, delivery_zones, inventory, settings`), incompatível com o código do Rota Verde.
 **Correção (opção B destrutiva, aplicada)**:
 - Drop das tabelas antigas + funções + trigger + buckets.
 - Re-aplicação de `supabase-schema.sql` + `supabase-trigger.sql`.
@@ -227,6 +228,40 @@ const supabaseAnonKey = envAnonKey && envUrl?.includes('vpomchqkkmjjeschanch') ?
 | `f1108c4` | `vercel.json` com SPA rewrite (corrigiu 404 em rotas client) |
 | `f362fda` | Trata perfil ausente no login |
 | `0e82adf` | Registro via trigger (substitui inserts bloqueados por RLS) |
+| `dac3a61` | Notificações WhatsApp supplier→buyer; modal edição de pedido; tela de sucesso no checkout |
+| `9054bd9` | Code review completo do codebase — 8 fixes (ver §7.5) |
+
+### 7.5 Features adicionadas em 2026-05-01 (`dac3a61` + `9054bd9`) ✅
+
+#### Três novas features (commit `dac3a61`)
+
+**1. Notificações WhatsApp supplier→buyer em mudanças de status**
+- `src/utils/index.ts`: `formatOrderStatusMessage(status, order, supplier)` gera mensagem WhatsApp formatada para cada status (`confirmed`, `in_delivery`, `delivered`, `cancelled`).
+- `src/pages/supplier/Orders.tsx`: `handleUpdateStatus` e `handleCancel` chamam `openWhatsApp` após update no DB — é ação direta do usuário (clique no botão), então não é bloqueado pelo browser.
+
+**2. Modal de edição de itens do pedido (supplier)**
+- `EditOrderModal` em `src/pages/supplier/Orders.tsx`: bottom-drawer com +/- por item, total recalculado em tempo real, itens com qty=0 aparecem como "Removido" (riscado, fundo vermelho).
+- `src/services/supabase.ts`: `updateOrderItemsAndTotal(orderId, updatedItems[])` — deleta itens com qty=0, atualiza os demais, recalcula total.
+- Notificação pós-save via Sonner toast com action button (`💬 Abrir WhatsApp`) — **não** `window.open()` direto após async (bloqueado em PWA/mobile).
+- Botão "Editar itens do pedido" visível para pedidos com status `pending` ou `confirmed`.
+
+**3. Tela de sucesso com CTA WhatsApp explícito no checkout (buyer)**
+- `src/pages/buyer/Cart.tsx`: após criar pedido com sucesso, mostra overlay com botão verde `<a href="https://wa.me/...">` que o comprador deve tocar conscientemente.
+- Remove `openWhatsApp()` automático pós-async (bloqueado em PWA).
+- `whatsapp_sent` gravado como `false` até o usuário tocar o botão (valor semântico correto).
+
+#### Oito fixes do code review (commit `9054bd9`)
+
+| # | Arquivo | Problema | Correção |
+|---|---------|----------|----------|
+| 1 | `src/utils/index.ts` | `~~text~~` (Markdown) em vez de `~text~` (WhatsApp) no strikethrough | Corrigido para `~text~` |
+| 2 | `src/utils/index.ts` | Parâmetro `order: Order` não utilizado em `formatOrderEditMessage` | Removido da assinatura e call sites |
+| 3 | `src/pages/buyer/Cart.tsx` | Texto do botão "Confirmar e Enviar WhatsApp" enganoso (checkout abre tela separada) | Mudado para "Confirmar Pedido" |
+| 4 | `src/pages/buyer/Cart.tsx` | Race condition: `setTimeout(() => navigate('/orders'), 800)` no clique do link WhatsApp | Trocado por `setCheckoutSuccess(null)` — navegação opcional via botão separado |
+| 5 | `src/pages/buyer/OrderHistory.tsx` | Sem `.catch()` — spinner ficava infinito em erro de rede | Adicionado `.catch().finally()` |
+| 6 | `src/pages/buyer/ProductDetail.tsx` | Idem — infinite loading state em erro | Adicionado `.catch().finally()` |
+| 7 | `src/components/cart/CartItem.tsx` | Dois imports separados do mesmo módulo (`../../utils`) | Fundidos em um só |
+| 8 | `src/pages/admin/Dashboard.tsx` | `recentOrders: [] as any[]` sem tipo + `(order: any)` no JSX | Trocado por `Order[]` + removida anotação `any` |
 
 ---
 
@@ -379,7 +414,7 @@ vercel --prod          # deploy manual
 
 ---
 
-## 10. Estado Atual (2026-04-19)
+## 10. Estado Atual (2026-05-01)
 
 ### Funcionando ✅
 - Login/logout (admin, buyer, supplier) local e em produção.
@@ -388,12 +423,18 @@ vercel --prod          # deploy manual
 - Dashboard admin (contadores + pedidos recentes).
 - Dashboard supplier (stats + pedidos recentes).
 - Home buyer (categorias + produtos + fornecedores em destaque).
-- Carrinho + checkout WhatsApp.
+- Carrinho + checkout com tela de sucesso e CTA WhatsApp explícito (sem `window.open` pós-async).
+- Supplier recebe notificação WhatsApp do comprador ao fazer pedido.
+- Supplier notifica comprador via WhatsApp em mudanças de status (confirmado, em entrega, entregue, cancelado).
+- Supplier pode editar itens de pedidos pendentes/confirmados (modal +/-) e notificar comprador via WhatsApp.
+- Histórico de pedidos do comprador com filtro por status.
 - RLS testada para todas as roles.
 - PWA instalável.
 - Onboarding intro.js por role.
 - Mobile: inputs sem zoom automático iOS.
 - Deploy automático Vercel em push para `main`.
+- Tipos corretos em todo o codebase (sem `any[]` exposto).
+- Tratamento de erro consistente com `.catch().finally()` em todos os carregamentos de página.
 
 ### Pendências / Melhorias sugeridas
 - [ ] Atualizar env vars no Dashboard Vercel para apontarem ao projeto correto (cosmético — fallback protege).
@@ -403,6 +444,7 @@ vercel --prod          # deploy manual
 - [ ] Notificação push (via service worker) para suppliers em novos pedidos.
 - [ ] Histórico de pedidos com filtro por data/status para admin.
 - [ ] CI (GitHub Actions) para rodar `npm run build && npm test` em PRs.
+- [ ] Refatorar `updateOrderItemsAndTotal` para batch update (atualmente N+1, aceitável no volume atual).
 
 ---
 
@@ -426,9 +468,9 @@ navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregist
 caches.keys().then(ks => ks.forEach(k => caches.delete(k)));
 
 # Resetar onboarding (Console do app):
-localStorage.removeItem('verdemar_onboarding_done_buyer');
-localStorage.removeItem('verdemar_onboarding_done_supplier');
-localStorage.removeItem('verdemar_onboarding_done_admin');
+localStorage.removeItem('rota_verde_onboarding_done_buyer');
+localStorage.removeItem('rota_verde_onboarding_done_supplier');
+localStorage.removeItem('rota_verde_onboarding_done_admin');
 ```
 
 ---

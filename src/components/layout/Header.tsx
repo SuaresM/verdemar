@@ -36,12 +36,12 @@ export function Header({ title, showBack = false, right, transparent = false }: 
   )
 }
 
-export function VerdemarHeader() {
+export function RotaVerdeHeader() {
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-gray-100 px-4 h-14 flex items-center">
       <div className="flex items-center gap-2">
         <span className="text-2xl">🌿</span>
-        <span className="text-xl font-extrabold text-primary">VerdeMar</span>
+        <span className="text-xl font-extrabold text-primary">Rota Verde</span>
       </div>
     </header>
   )

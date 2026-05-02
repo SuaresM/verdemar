@@ -1,5 +1,5 @@
 -- ============================================================
--- VerdeMar - Auth trigger for automatic profile creation
+-- Rota Verde - Auth trigger for automatic profile creation
 -- Run this in the Supabase SQL Editor
 -- ============================================================
 

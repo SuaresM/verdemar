@@ -6,6 +6,6 @@ export function openWhatsApp(phone: string, message: string): void {
 
 export function openSupportWhatsApp(): void {
   const supportPhone = import.meta.env.VITE_SUPPORT_WHATSAPP as string
-  const message = encodeURIComponent('Olá! Preciso de ajuda com o VerdeMar.')
+  const message = encodeURIComponent('Olá! Preciso de ajuda com a Rota Verde.')
   openWhatsApp(supportPhone || '5511999999999', message)
 }

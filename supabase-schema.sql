@@ -1,5 +1,5 @@
 -- ============================================================
--- VerdeMar - Supabase Database Schema
+-- Rota Verde - Supabase Database Schema
 -- Run this in the Supabase SQL Editor
 -- ============================================================
 
