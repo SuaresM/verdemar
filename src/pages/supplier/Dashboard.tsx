@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Package, TrendingUp, Clock, Plus } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
 import { getSupplierDashboard } from '../../services/supabase'
+import { subscribeToPush } from '../../lib/pushNotifications'
 import type { Order } from '../../types'
 import { OrderStatusBadge } from '../../components/shared/Badge'
 import { PageLoader } from '../../components/shared/LoadingSpinner'
@@ -30,6 +31,8 @@ export default function Dashboard() {
       .then((d) => setData(d))
       .catch((err) => console.error('Erro ao carregar dashboard:', err))
       .finally(() => setLoading(false))
+    // Request push permission silently — no alert if denied
+    subscribeToPush(supplier.id).catch(() => {})
   }, [supplier])
 
   if (loading) return <PageLoader />

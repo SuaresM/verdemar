@@ -214,12 +214,8 @@ export async function createOrder(
   const { error: itemsError } = await supabase.from('order_items').insert(orderItems)
   if (itemsError) throw itemsError
 
-  // Update supplier total_sales (non-blocking - don't fail the order if this fails)
-  try {
-    await supabase.rpc('increment_supplier_sales', { supplier_id: order.supplier_id })
-  } catch (rpcErr) {
-    console.error('Erro ao incrementar vendas do fornecedor:', rpcErr)
-  }
+  // Fire-and-forget push notification to supplier (total_sales updated by DB trigger)
+  sendOrderPushNotification(order.supplier_id, orderData.id).catch(() => {})
 
   return orderData
 }
@@ -286,13 +282,17 @@ export async function updateOrderItemsAndTotal(
 }
 
 // ---- ADMIN ----
-export async function getAllSuppliers(): Promise<(Supplier & { profile?: Profile })[]> {
+export async function getAllSuppliers(page = 0): Promise<{ data: (Supplier & { profile?: Profile })[]; hasMore: boolean }> {
+  const from = page * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
   const { data, error } = await supabase
     .from('suppliers')
     .select('*, profile:profiles(*)')
     .order('created_at', { ascending: false })
-  if (error) return []
-  return data
+    .range(from, to + 1)
+  if (error) return { data: [], hasMore: false }
+  const hasMore = (data?.length || 0) > PAGE_SIZE
+  return { data: hasMore ? data!.slice(0, PAGE_SIZE) : data || [], hasMore }
 }
 
 export async function getAllProducts(page = 0): Promise<{ data: Product[]; hasMore: boolean }> {
@@ -374,10 +374,10 @@ export async function getAdminDashboard() {
 }
 
 export async function getSupplierDashboard(supplierId: string) {
-  // UTC boundaries to match Supabase's timestamptz storage.
+  // Use local midnight so "today" and "this month" match the supplier's timezone
   const now = new Date()
-  const todayStr = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString()
-  const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
+  const todayStr = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
   const [todayRes, pendingRes, monthRes, recentRes] = await Promise.all([
     supabase
@@ -411,4 +411,42 @@ export async function getSupplierDashboard(supplierId: string) {
     monthTotal,
     recentOrders: recentRes.data || [],
   }
+}
+
+// ---- PUSH NOTIFICATIONS ----
+export async function savePushSubscription(userId: string, subscription: PushSubscriptionJSON) {
+  const { error } = await supabase
+    .from('push_subscriptions')
+    .upsert({ user_id: userId, subscription }, { onConflict: 'user_id' })
+  if (error) throw error
+}
+
+async function sendOrderPushNotification(supplierId: string, orderId: string) {
+  await fetch('/api/send-push', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ supplierId, orderId }),
+  })
+}
+
+// ---- ADMIN TEAM ----
+export async function getAllProfiles(page = 0): Promise<{ data: Profile[]; hasMore: boolean }> {
+  const from = page * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .range(from, to + 1)
+  if (error) return { data: [], hasMore: false }
+  const hasMore = (data?.length || 0) > PAGE_SIZE
+  return { data: hasMore ? data!.slice(0, PAGE_SIZE) : data || [], hasMore }
+}
+
+export async function updateUserRole(userId: string, role: Profile['role']) {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ role })
+    .eq('id', userId)
+  if (error) throw error
 }

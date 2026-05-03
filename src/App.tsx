@@ -12,6 +12,8 @@ import { AdminNav } from './components/layout/AdminNav'
 // Lazy-loaded pages
 const Login = lazy(() => import('./pages/public/Login'))
 const Register = lazy(() => import('./pages/public/Register'))
+const ForgotPassword = lazy(() => import('./pages/public/ForgotPassword'))
+const ResetPassword = lazy(() => import('./pages/public/ResetPassword'))
 const Home = lazy(() => import('./pages/buyer/Home'))
 const Search = lazy(() => import('./pages/buyer/Search'))
 const Cart = lazy(() => import('./pages/buyer/Cart'))
@@ -28,6 +30,7 @@ const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'))
 const AdminSuppliers = lazy(() => import('./pages/admin/Suppliers'))
 const AdminProducts = lazy(() => import('./pages/admin/Products'))
 const AdminOrders = lazy(() => import('./pages/admin/Orders'))
+const AdminTeam = lazy(() => import('./pages/admin/Team'))
 
 function BuyerLayout() {
   const { profile, isLoading } = useAuthStore()
@@ -104,6 +107,8 @@ function AppRoutes() {
         <Route element={<PublicRoute />}>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
         </Route>
 
         <Route element={<BuyerLayout />}>
@@ -130,6 +135,7 @@ function AppRoutes() {
           <Route path="suppliers" element={<AdminSuppliers />} />
           <Route path="products" element={<AdminProducts />} />
           <Route path="orders" element={<AdminOrders />} />
+          <Route path="team" element={<AdminTeam />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/login" replace />} />

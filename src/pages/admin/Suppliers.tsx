@@ -10,22 +10,29 @@ type Filter = 'all' | 'active' | 'inactive'
 
 export default function AdminSuppliers() {
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [suppliers, setSuppliers] = useState<(Supplier & { profile?: any })[]>([])
+  const [page, setPage] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
   const [filter, setFilter] = useState<Filter>('all')
 
-  const load = async () => {
+  const load = async (reset = false) => {
+    const currentPage = reset ? 0 : page
+    if (!reset) setLoadingMore(true)
     try {
-      const data = await getAllSuppliers()
-      setSuppliers(data ?? [])
+      const { data, hasMore: more } = await getAllSuppliers(currentPage)
+      setSuppliers(reset ? data : (prev) => [...prev, ...data])
+      setHasMore(more)
+      if (!reset) setPage((p) => p + 1)
     } catch (err) {
       console.error('Erro ao carregar fornecedores:', err)
-      setSuppliers([])
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load(true) }, [])
 
   const filtered = suppliers.filter((s) => {
     if (filter === 'active') return s.is_active
@@ -42,7 +49,7 @@ export default function AdminSuppliers() {
         await activateSupplier(supplier.id)
         toast.success('Fornecedor ativado')
       }
-      await load()
+      await load(true)
     } catch {
       toast.error('Erro ao atualizar fornecedor')
     }
@@ -53,7 +60,7 @@ export default function AdminSuppliers() {
     try {
       await deleteSupplierAdmin(supplier.id)
       toast.success('Fornecedor deletado')
-      await load()
+      await load(true)
     } catch {
       toast.error('Erro ao deletar fornecedor')
     }
@@ -91,6 +98,7 @@ export default function AdminSuppliers() {
         ) : (
           <div className="space-y-3">
             {filtered.map((supplier) => (
+
               <div key={supplier.id} className="bg-white rounded-2xl shadow-sm p-4">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-3">
@@ -138,6 +146,15 @@ export default function AdminSuppliers() {
                 </div>
               </div>
             ))}
+            {hasMore && (
+              <button
+                onClick={() => load()}
+                disabled={loadingMore}
+                className="w-full py-3 rounded-xl text-sm font-semibold bg-gray-100 text-gray-600 disabled:opacity-60"
+              >
+                {loadingMore ? 'Carregando...' : 'Carregar mais'}
+              </button>
+            )}
           </div>
         )}
       </div>

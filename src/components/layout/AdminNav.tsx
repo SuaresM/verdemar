@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { BarChart2, Store, Package, ClipboardList, LogOut } from 'lucide-react'
+import { BarChart2, Store, Package, ClipboardList, Users, LogOut } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
 import { toast } from 'sonner'
 
@@ -18,6 +18,7 @@ export function AdminNav() {
     { to: '/admin/suppliers', icon: Store, label: 'Fornecedores', id: 'nav-admin-suppliers' },
     { to: '/admin/products', icon: Package, label: 'Produtos', id: 'nav-admin-products' },
     { to: '/admin/orders', icon: ClipboardList, label: 'Pedidos', id: 'nav-admin-orders' },
+    { to: '/admin/team', icon: Users, label: 'Equipe', id: 'nav-admin-team' },
   ]
 
   return (
