@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient'
+import { apiClient } from '../lib/apiClient'
 import type { Profile, Buyer, Supplier, Product, Order, OrderItem } from '../types'
 
 // ---- AUTH ----
@@ -203,21 +204,7 @@ export async function createOrder(
   order: Omit<Order, 'id' | 'created_at' | 'updated_at' | 'items' | 'supplier' | 'buyer'>,
   items: Omit<OrderItem, 'id' | 'order_id' | 'product'>[]
 ): Promise<Order> {
-  const { data: orderData, error: orderError } = await supabase
-    .from('orders')
-    .insert(order)
-    .select()
-    .single()
-  if (orderError) throw orderError
-
-  const orderItems = items.map((item) => ({ ...item, order_id: orderData.id }))
-  const { error: itemsError } = await supabase.from('order_items').insert(orderItems)
-  if (itemsError) throw itemsError
-
-  // Fire-and-forget push notification to supplier (total_sales updated by DB trigger)
-  sendOrderPushNotification(order.supplier_id, orderData.id).catch(() => {})
-
-  return orderData
+  return apiClient.post<Order>('/orders', { order, items })
 }
 
 export async function getOrdersByBuyer(buyerId: string, limit = 100): Promise<Order[]> {
@@ -243,41 +230,16 @@ export async function getOrdersBySupplier(supplierId: string, limit = 100): Prom
 }
 
 export async function updateOrderStatus(orderId: string, status: string) {
-  const { error } = await supabase
-    .from('orders')
-    .update({ status, updated_at: new Date().toISOString() })
-    .eq('id', orderId)
-  if (error) throw error
+  await apiClient.patch(`/orders/${orderId}/status`, { status })
 }
 
 export async function updateOrderItemsAndTotal(
   orderId: string,
   updatedItems: Array<{ id: string; quantity: number; subtotal: number }>
 ): Promise<number> {
-  const toRemove = updatedItems.filter((i) => i.quantity === 0).map((i) => i.id)
-  const toUpdate = updatedItems.filter((i) => i.quantity > 0)
-
-  if (toRemove.length > 0) {
-    const { error } = await supabase.from('order_items').delete().in('id', toRemove)
-    if (error) throw error
-  }
-
-  for (const item of toUpdate) {
-    const { error } = await supabase
-      .from('order_items')
-      .update({ quantity: item.quantity, subtotal: item.subtotal })
-      .eq('id', item.id)
-    if (error) throw error
-  }
-
-  const newTotal = toUpdate.reduce((sum, i) => sum + i.subtotal, 0)
-
-  const { error: orderErr } = await supabase
-    .from('orders')
-    .update({ total_value: newTotal, updated_at: new Date().toISOString() })
-    .eq('id', orderId)
-  if (orderErr) throw orderErr
-
+  const { newTotal } = await apiClient.patch<{ newTotal: number }>(`/orders/${orderId}/items`, {
+    items: updatedItems,
+  })
   return newTotal
 }
 
@@ -322,33 +284,15 @@ export async function getAllOrders(page = 0): Promise<{ data: Order[]; hasMore: 
 }
 
 export async function deactivateSupplier(id: string) {
-  const { error } = await supabase
-    .from('suppliers')
-    .update({ is_active: false })
-    .eq('id', id)
-  if (error) throw error
+  await apiClient.patch(`/admin/suppliers/${id}/status`, { is_active: false })
 }
 
 export async function activateSupplier(id: string) {
-  const { error } = await supabase
-    .from('suppliers')
-    .update({ is_active: true })
-    .eq('id', id)
-  if (error) throw error
+  await apiClient.patch(`/admin/suppliers/${id}/status`, { is_active: true })
 }
 
 export async function deleteSupplierAdmin(id: string) {
-  const { error: prodErr } = await supabase
-    .from('products')
-    .delete()
-    .eq('supplier_id', id)
-  if (prodErr) throw prodErr
-
-  const { error } = await supabase
-    .from('suppliers')
-    .delete()
-    .eq('id', id)
-  if (error) throw error
+  await apiClient.delete(`/admin/suppliers/${id}`)
 }
 
 export async function getAdminDashboard() {
@@ -413,40 +357,11 @@ export async function getSupplierDashboard(supplierId: string) {
   }
 }
 
-// ---- PUSH NOTIFICATIONS ----
-export async function savePushSubscription(userId: string, subscription: PushSubscriptionJSON) {
-  const { error } = await supabase
-    .from('push_subscriptions')
-    .upsert({ user_id: userId, subscription }, { onConflict: 'user_id' })
-  if (error) throw error
-}
-
-async function sendOrderPushNotification(supplierId: string, orderId: string) {
-  await fetch('/api/send-push', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ supplierId, orderId }),
-  })
-}
-
 // ---- ADMIN TEAM ----
 export async function getAllProfiles(page = 0): Promise<{ data: Profile[]; hasMore: boolean }> {
-  const from = page * PAGE_SIZE
-  const to = from + PAGE_SIZE - 1
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .range(from, to + 1)
-  if (error) return { data: [], hasMore: false }
-  const hasMore = (data?.length || 0) > PAGE_SIZE
-  return { data: hasMore ? data!.slice(0, PAGE_SIZE) : data || [], hasMore }
+  return apiClient.get<{ data: Profile[]; hasMore: boolean }>(`/admin/users?page=${page}`)
 }
 
 export async function updateUserRole(userId: string, role: Profile['role']) {
-  const { error } = await supabase
-    .from('profiles')
-    .update({ role })
-    .eq('id', userId)
-  if (error) throw error
+  await apiClient.patch(`/admin/users/${userId}/role`, { role })
 }

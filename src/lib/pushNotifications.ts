@@ -1,4 +1,6 @@
-export async function subscribeToPush(userId: string): Promise<void> {
+import { apiClient } from './apiClient'
+
+export async function subscribeToPush(_userId: string): Promise<void> {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
 
   const registration = await navigator.serviceWorker.ready
@@ -13,6 +15,5 @@ export async function subscribeToPush(userId: string): Promise<void> {
     applicationServerKey: vapidKey,
   })
 
-  const { savePushSubscription } = await import('../services/supabase')
-  await savePushSubscription(userId, subscription.toJSON())
+  await apiClient.post(`/push/subscribe`, { subscription: subscription.toJSON() })
 }
