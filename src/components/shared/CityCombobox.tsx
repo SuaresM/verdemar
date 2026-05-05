@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { CITIES } from '../../constants/cities'
 
 interface CityComboboxProps {
@@ -11,7 +11,10 @@ interface CityComboboxProps {
 export function CityCombobox({ value, onChange, placeholder = 'Digite a cidade...', error }: CityComboboxProps) {
   const [query, setQuery] = useState(value)
   const [open, setOpen] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setQuery(value)
+  }, [value])
 
   const filtered = query
     ? CITIES.filter((c) => c.city.toLowerCase().includes(query.toLowerCase())).slice(0, 8)
@@ -26,7 +29,6 @@ export function CityCombobox({ value, onChange, placeholder = 'Digite a cidade..
   return (
     <div className="relative">
       <input
-        ref={inputRef}
         value={query}
         onChange={(e) => {
           setQuery(e.target.value)
