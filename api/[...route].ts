@@ -36,6 +36,24 @@ app.post('/orders', requireAuth, async (c) => {
   const { error: itemsError } = await adminSupabase.from('order_items').insert(orderItems)
   if (itemsError) return c.json({ error: itemsError.message }, 400)
 
+  // Increment total_sold per product (atomic via Postgres RPC)
+  const quantityByProduct: Record<string, number> = {}
+  for (const item of items) {
+    const pid = item.product_id as string
+    quantityByProduct[pid] = (quantityByProduct[pid] || 0) + (item.quantity as number)
+  }
+  await Promise.all(
+    Object.entries(quantityByProduct).map(([pid, qty]) =>
+      adminSupabase.rpc('increment_product_sold', { p_id: pid, p_amount: qty })
+    )
+  )
+
+  // Increment supplier total_sales
+  await adminSupabase.rpc('increment_supplier_sales', {
+    p_id: order.supplier_id as string,
+    p_amount: orderData.total_value as number,
+  })
+
   sendPush(order.supplier_id as string, orderData.id as string).catch(() => {})
 
   return c.json(orderData, 201)
@@ -86,6 +104,18 @@ app.patch('/orders/:id/items', requireAuth, async (c) => {
   return c.json({ newTotal })
 })
 
+app.patch('/orders/:id/whatsapp-sent', requireAuth, async (c) => {
+  const orderId = c.req.param('id')
+
+  const { error } = await adminSupabase
+    .from('orders')
+    .update({ whatsapp_sent: true })
+    .eq('id', orderId)
+  if (error) return c.json({ error: error.message }, 400)
+
+  return c.json({ ok: true })
+})
+
 // ── PUSH ─────────────────────────────────────────────────────────────────────
 
 app.post('/push/subscribe', requireAuth, async (c) => {
@@ -95,6 +125,63 @@ app.post('/push/subscribe', requireAuth, async (c) => {
   const { error } = await adminSupabase
     .from('push_subscriptions')
     .upsert({ user_id: userId, subscription }, { onConflict: 'user_id' })
+  if (error) return c.json({ error: error.message }, 400)
+
+  return c.json({ ok: true })
+})
+
+// ── DELIVERY ZONES ───────────────────────────────────────────────────────────
+
+app.post('/supplier/delivery-zones', requireAuth, async (c) => {
+  const userId = c.get('userId')
+  const body = await c.req.json<{
+    city: string
+    state: string
+    days: string[]
+    hours_start: string
+    hours_end: string
+  }>()
+
+  const { data, error } = await adminSupabase
+    .from('delivery_zones')
+    .insert({ ...body, supplier_id: userId })
+    .select()
+    .single()
+  if (error) return c.json({ error: error.message }, 400)
+
+  return c.json(data, 201)
+})
+
+app.put('/supplier/delivery-zones/:id', requireAuth, async (c) => {
+  const userId = c.get('userId')
+  const zoneId = c.req.param('id')
+  const body = await c.req.json<{
+    city: string
+    state: string
+    days: string[]
+    hours_start: string
+    hours_end: string
+  }>()
+
+  const { error } = await adminSupabase
+    .from('delivery_zones')
+    .update(body)
+    .eq('id', zoneId)
+    .eq('supplier_id', userId)
+  if (error) return c.json({ error: error.message }, 400)
+
+  return c.json({ ok: true })
+})
+
+app.delete('/supplier/delivery-zones/:id', requireAuth, async (c) => {
+  const userId = c.get('userId')
+  const zoneId = c.req.param('id')
+
+  const { error } = await adminSupabase
+    .from('delivery_zones')
+    .delete()
+    .eq('id', zoneId)
+    .eq('supplier_id', userId)
   if (error) return c.json({ error: error.message }, 400)
 
   return c.json({ ok: true })
