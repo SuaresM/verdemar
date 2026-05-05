@@ -112,3 +112,14 @@ export interface CartSection {
   notes: string
   deliveryTimePreference: string
 }
+
+export interface DeliveryZone {
+  id: string
+  supplier_id: string
+  city: string
+  state: string
+  days: string[]
+  hours_start: string
+  hours_end: string
+  created_at?: string
+}
