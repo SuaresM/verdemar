@@ -22,7 +22,8 @@ CREATE POLICY "delivery_zones_insert_own" ON delivery_zones
   FOR INSERT WITH CHECK (supplier_id = auth.uid());
 
 CREATE POLICY "delivery_zones_update_own" ON delivery_zones
-  FOR UPDATE USING (supplier_id = auth.uid());
+  FOR UPDATE USING (supplier_id = auth.uid())
+  WITH CHECK (supplier_id = auth.uid());
 
 CREATE POLICY "delivery_zones_delete_own" ON delivery_zones
   FOR DELETE USING (supplier_id = auth.uid());
@@ -45,3 +46,10 @@ SET search_path = public
 AS $$
   UPDATE suppliers SET total_sales = total_sales + p_amount WHERE id = p_id;
 $$;
+
+-- Lock down RPC execution: only the service role (Hono adminSupabase) may call these.
+-- Without this, any authenticated user with the anon key could inflate counters directly.
+REVOKE EXECUTE ON FUNCTION increment_product_sold(uuid, int) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION increment_supplier_sales(uuid, numeric) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION increment_product_sold(uuid, int) TO service_role;
+GRANT EXECUTE ON FUNCTION increment_supplier_sales(uuid, numeric) TO service_role;
