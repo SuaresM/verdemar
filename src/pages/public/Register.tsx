@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { toast } from 'sonner'
 import { ChevronRight, Store, ShoppingBag, ArrowLeft } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
+import { CityCombobox } from '../../components/shared/CityCombobox'
 
 const DAYS = [
   { value: 'monday', label: 'Seg' },
@@ -274,9 +275,18 @@ export default function Register() {
                 <InputField label="Complemento" placeholder="Apto 1" error={buyerForm.formState.errors.address_complement?.message} {...buyerForm.register('address_complement')} />
               </div>
               <InputField label="Bairro" required placeholder="Centro" error={buyerForm.formState.errors.address_neighborhood?.message} {...buyerForm.register('address_neighborhood')} />
-              <div className="grid grid-cols-2 gap-3">
-                <InputField label="Cidade" required placeholder="São Paulo" error={buyerForm.formState.errors.address_city?.message} {...buyerForm.register('address_city')} />
-                <InputField label="Estado" required placeholder="SP" error={buyerForm.formState.errors.address_state?.message} {...buyerForm.register('address_state')} />
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Cidade <span className="text-danger">*</span>
+                </label>
+                <CityCombobox
+                  value={buyerForm.watch('address_city') || ''}
+                  onChange={(city, state) => {
+                    buyerForm.setValue('address_city', city, { shouldValidate: true })
+                    buyerForm.setValue('address_state', state, { shouldValidate: true })
+                  }}
+                  error={buyerForm.formState.errors.address_city?.message}
+                />
               </div>
             </div>
 
