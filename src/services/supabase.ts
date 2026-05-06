@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabaseClient'
 import { apiClient } from '../lib/apiClient'
-import type { Profile, Buyer, Supplier, Product, Order, OrderItem } from '../types'
+import type { Profile, Buyer, Supplier, Product, Order, OrderItem, DeliveryZone } from '../types'
 
 // ---- AUTH ----
 export async function signIn(email: string, password: string) {
@@ -364,4 +364,33 @@ export async function getAllProfiles(page = 0): Promise<{ data: Profile[]; hasMo
 
 export async function updateUserRole(userId: string, role: Profile['role']) {
   await apiClient.patch(`/admin/users/${userId}/role`, { role })
+}
+
+// ---- DELIVERY ZONES ----
+
+export async function getDeliveryZonesBySupplier(supplierId: string): Promise<DeliveryZone[]> {
+  const { data, error } = await supabase
+    .from('delivery_zones')
+    .select('*')
+    .eq('supplier_id', supplierId)
+    .order('city')
+  if (error) return []
+  return data
+}
+
+export async function createDeliveryZone(
+  zone: Omit<DeliveryZone, 'id' | 'created_at'>
+): Promise<DeliveryZone> {
+  return apiClient.post<DeliveryZone>('/supplier/delivery-zones', zone)
+}
+
+export async function updateDeliveryZone(
+  id: string,
+  zone: Pick<DeliveryZone, 'city' | 'state' | 'days' | 'hours_start' | 'hours_end'>
+): Promise<void> {
+  await apiClient.put(`/supplier/delivery-zones/${id}`, zone)
+}
+
+export async function deleteDeliveryZone(id: string): Promise<void> {
+  await apiClient.delete(`/supplier/delivery-zones/${id}`)
 }
