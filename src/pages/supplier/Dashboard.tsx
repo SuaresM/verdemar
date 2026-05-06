@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Package, TrendingUp, Clock, Plus } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
-import { getSupplierDashboard } from '../../services/supabase'
+import { getSupplierDashboard, getProductsBySupplier } from '../../services/supabase'
 import { subscribeToPush } from '../../lib/pushNotifications'
 import type { Order } from '../../types'
 import { OrderStatusBadge } from '../../components/shared/Badge'
@@ -22,13 +22,20 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [productCount, setProductCount] = useState<number | null>(null)
 
   useOnboarding('supplier')
 
   useEffect(() => {
     if (!supplier) return
-    getSupplierDashboard(supplier.id)
-      .then((d) => setData(d))
+    Promise.all([
+      getSupplierDashboard(supplier.id),
+      getProductsBySupplier(supplier.id),
+    ])
+      .then(([dashData, products]) => {
+        setData(dashData)
+        setProductCount(products.length)
+      })
       .catch((err) => console.error('Erro ao carregar dashboard:', err))
       .finally(() => setLoading(false))
     // Request push permission silently — no alert if denied
@@ -62,6 +69,22 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {productCount === 0 && (
+        <div className="mx-4 mt-4 bg-amber-50 border border-amber-100 rounded-2xl p-4 flex items-start gap-3">
+          <span className="text-2xl">⚠️</span>
+          <div className="flex-1">
+            <p className="font-bold text-amber-800 text-sm">Catálogo vazio</p>
+            <p className="text-xs text-amber-700 mt-0.5">Compradores não encontrarão seus produtos enquanto o catálogo estiver vazio.</p>
+            <button
+              onClick={() => navigate('/supplier/products/new')}
+              className="mt-2 text-xs font-bold text-primary underline"
+            >
+              Adicionar primeiro produto →
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="px-4 py-4 space-y-4">
         {/* Stats cards */}
