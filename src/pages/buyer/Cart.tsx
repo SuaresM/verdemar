@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ShoppingCart, ChevronDown, ChevronUp, CheckCircle, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
@@ -9,7 +9,9 @@ import { EmptyState } from '../../components/shared/EmptyState'
 import { Header } from '../../components/layout/Header'
 import { formatCurrency, formatWhatsAppMessage } from '../../utils'
 import { createOrder } from '../../services/supabase'
-import type { CartSection } from '../../types'
+import { getDeliveryZonesBySupplier } from '../../services/supabase'
+import type { CartSection, DeliveryZone } from '../../types'
+import { apiClient } from '../../lib/apiClient'
 
 function SectionMinOrderStatus({ section }: { section: CartSection }) {
   const minValue = section.supplier.min_order_value
@@ -133,6 +135,17 @@ function CheckoutDrawer({ section, onConfirm, onClose, loading }: CheckoutDrawer
   )
 }
 
+function hasCityMismatch(
+  supplierId: string,
+  buyerCity: string | undefined,
+  supplierZones: Record<string, DeliveryZone[]>
+): boolean {
+  if (!buyerCity) return false
+  const zones = supplierZones[supplierId]
+  if (!zones || zones.length === 0) return false
+  return !zones.some((z) => z.city === buyerCity)
+}
+
 export default function Cart() {
   const { sections, updateNotes, updateDeliveryTime, clearSection } = useCartStore()
   const { buyer } = useAuthStore()
@@ -140,9 +153,23 @@ export default function Cart() {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({})
   const [checkoutSection, setCheckoutSection] = useState<CartSection | null>(null)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
-  const [checkoutSuccess, setCheckoutSuccess] = useState<{ whatsappUrl: string; supplierName: string } | null>(null)
+  const [checkoutSuccess, setCheckoutSuccess] = useState<{ whatsappUrl: string; supplierName: string; orderId: string } | null>(null)
+  const [supplierZones, setSupplierZones] = useState<Record<string, DeliveryZone[]>>({})
 
   const totalAll = sections.reduce((sum, s) => sum + s.sectionTotal, 0)
+
+  useEffect(() => {
+    if (sections.length === 0) return
+    Promise.all(
+      sections.map((s) =>
+        getDeliveryZonesBySupplier(s.supplier.id).then((zones) => ({ id: s.supplier.id, zones }))
+      )
+    ).then((results) => {
+      const map: Record<string, DeliveryZone[]> = {}
+      results.forEach(({ id, zones }) => { map[id] = zones })
+      setSupplierZones(map)
+    })
+  }, [sections])
 
   const toggleSection = (id: string) => {
     setExpandedSections((prev) => ({ ...prev, [id]: !prev[id] }))
@@ -196,7 +223,7 @@ export default function Cart() {
 
       clearSection(checkoutSection.supplier.id)
       setCheckoutSection(null)
-      setCheckoutSuccess({ whatsappUrl, supplierName: checkoutSection.supplier.store_name })
+      setCheckoutSuccess({ whatsappUrl, supplierName: checkoutSection.supplier.store_name, orderId: order.id })
     } catch (err) {
       toast.error('Erro ao finalizar pedido. Tente novamente.')
       console.error(err)
@@ -262,6 +289,16 @@ export default function Cart() {
                       <CartItemCard key={item.product.id} item={item} supplierId={section.supplier.id} />
                     ))}
                   </div>
+
+                  {/* City delivery warning */}
+                  {hasCityMismatch(section.supplier.id, buyer?.address_city, supplierZones) && (
+                    <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-xl">
+                      <AlertTriangle size={14} className="mt-0.5 flex-shrink-0 text-amber-600" />
+                      <p className="text-xs text-amber-700 font-semibold">
+                        Este fornecedor pode não entregar em {buyer?.address_city}. Confirme antes de finalizar.
+                      </p>
+                    </div>
+                  )}
 
                   {/* Min order status */}
                   <div className="pt-2">
@@ -345,7 +382,12 @@ export default function Cart() {
               href={checkoutSuccess.whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => setCheckoutSuccess(null)}
+              onClick={() => {
+                if (checkoutSuccess) {
+                  apiClient.patch(`/orders/${checkoutSuccess.orderId}/whatsapp-sent`, {}).catch(() => {})
+                }
+                setCheckoutSuccess(null)
+              }}
               className="flex items-center justify-center gap-3 w-full bg-green-500 text-white font-bold py-4 rounded-2xl text-base shadow-lg active:scale-95 transition-transform"
             >
               <span className="text-xl">💬</span>
