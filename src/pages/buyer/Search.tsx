@@ -35,7 +35,7 @@ export default function Search() {
   const [hasMoreSuppliers, setHasMoreSuppliers] = useState(false)
   const lastSearchRef = useRef({ query: '', category: '' })
   const skipNextCategoryEffect = useRef(false)
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   useEffect(() => {
     const catParam = searchParams.get('category')
