@@ -35,6 +35,7 @@ export default function Search() {
   const [hasMoreSuppliers, setHasMoreSuppliers] = useState(false)
   const lastSearchRef = useRef({ query: '', category: '' })
   const skipNextCategoryEffect = useRef(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>()
 
   useEffect(() => {
     const catParam = searchParams.get('category')
@@ -139,7 +140,13 @@ export default function Search() {
           <SearchIcon size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              const q = e.target.value
+              setQuery(q)
+              if (!q.trim() && !category) return
+              clearTimeout(debounceRef.current)
+              debounceRef.current = setTimeout(() => handleSearch(q), 400)
+            }}
             onKeyDown={handleKeyDown}
             placeholder="Buscar produto ou fornecedor..."
             className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
