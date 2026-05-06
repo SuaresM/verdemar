@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Camera, MessageCircle, LogOut } from 'lucide-react'
+import { Camera, MessageCircle, LogOut, Plus, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../stores/authStore'
@@ -10,6 +10,10 @@ import { updateSupplier } from '../../services/supabase'
 import { uploadSupplierLogo, uploadSupplierBanner } from '../../services/storage'
 import { Header } from '../../components/layout/Header'
 import { openSupportWhatsApp } from '../../services/whatsapp'
+import { CityCombobox } from '../../components/shared/CityCombobox'
+import { getDeliveryZonesBySupplier, createDeliveryZone, updateDeliveryZone, deleteDeliveryZone } from '../../services/supabase'
+import type { DeliveryZone } from '../../types'
+import { getDeliveryDaysLabel } from '../../utils'
 
 const DAYS = [
   { value: 'monday', label: 'Seg' },
@@ -44,6 +48,25 @@ export default function StoreSettings() {
   const [bannerFile, setBannerFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState(supplier?.logo_url || '')
   const [bannerPreview, setBannerPreview] = useState(supplier?.banner_url || '')
+  const [zones, setZones] = useState<DeliveryZone[]>([])
+  const [zonesLoading, setZonesLoading] = useState(true)
+  const [showZoneModal, setShowZoneModal] = useState(false)
+  const [editingZone, setEditingZone] = useState<DeliveryZone | null>(null)
+  const [zoneForm, setZoneForm] = useState({
+    city: '',
+    state: '',
+    days: [] as string[],
+    hours_start: '',
+    hours_end: '',
+  })
+  const [zoneSaving, setZoneSaving] = useState(false)
+
+  useEffect(() => {
+    if (!supplier) return
+    getDeliveryZonesBySupplier(supplier.id)
+      .then(setZones)
+      .finally(() => setZonesLoading(false))
+  }, [supplier])
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -64,6 +87,60 @@ export default function StoreSettings() {
     setDeliveryDays((prev) =>
       prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
     )
+  }
+
+  const openAddZone = () => {
+    setEditingZone(null)
+    setZoneForm({ city: '', state: '', days: [], hours_start: '', hours_end: '' })
+    setShowZoneModal(true)
+  }
+
+  const openEditZone = (zone: DeliveryZone) => {
+    setEditingZone(zone)
+    setZoneForm({ city: zone.city, state: zone.state, days: zone.days, hours_start: zone.hours_start, hours_end: zone.hours_end })
+    setShowZoneModal(true)
+  }
+
+  const handleSaveZone = async () => {
+    if (!supplier) return
+    if (!zoneForm.city || zoneForm.days.length === 0 || !zoneForm.hours_start || !zoneForm.hours_end) {
+      toast.error('Preencha cidade, dias e horário')
+      return
+    }
+    setZoneSaving(true)
+    try {
+      if (editingZone) {
+        await updateDeliveryZone(editingZone.id, zoneForm)
+        setZones((prev) => prev.map((z) => (z.id === editingZone.id ? { ...z, ...zoneForm } : z)))
+        toast.success('Zona atualizada!')
+      } else {
+        const created = await createDeliveryZone(zoneForm)
+        setZones((prev) => [...prev, created])
+        toast.success('Zona adicionada!')
+      }
+      setShowZoneModal(false)
+    } catch {
+      toast.error('Erro ao salvar zona')
+    } finally {
+      setZoneSaving(false)
+    }
+  }
+
+  const handleDeleteZone = async (zoneId: string) => {
+    try {
+      await deleteDeliveryZone(zoneId)
+      setZones((prev) => prev.filter((z) => z.id !== zoneId))
+      toast.success('Zona removida!')
+    } catch {
+      toast.error('Erro ao remover zona')
+    }
+  }
+
+  const toggleZoneDay = (day: string) => {
+    setZoneForm((f) => ({
+      ...f,
+      days: f.days.includes(day) ? f.days.filter((d) => d !== day) : [...f.days, day],
+    }))
   }
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -231,6 +308,46 @@ export default function StoreSettings() {
           </div>
         </div>
 
+        {/* Delivery Zones */}
+        <div className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="font-bold text-gray-700">Zonas de Entrega por Cidade</p>
+            <button
+              type="button"
+              onClick={openAddZone}
+              className="flex items-center gap-1 text-sm text-primary font-semibold"
+            >
+              <Plus size={16} />
+              Adicionar
+            </button>
+          </div>
+
+          {zonesLoading ? (
+            <p className="text-sm text-gray-400 text-center py-2">Carregando...</p>
+          ) : zones.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-2">Nenhuma zona cadastrada</p>
+          ) : (
+            zones.map((zone) => (
+              <div key={zone.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                <div>
+                  <p className="font-semibold text-gray-800 text-sm">{zone.city} — {zone.state}</p>
+                  <p className="text-xs text-gray-500">
+                    {getDeliveryDaysLabel(zone.days)} · {zone.hours_start}–{zone.hours_end}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => openEditZone(zone)} className="p-1.5 text-gray-400 hover:text-primary">
+                    <Pencil size={14} />
+                  </button>
+                  <button type="button" onClick={() => handleDeleteZone(zone.id)} className="p-1.5 text-gray-400 hover:text-danger">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
         <button
           type="submit"
           disabled={saving}
@@ -266,6 +383,81 @@ export default function StoreSettings() {
           </button>
         </div>
       </form>
+
+      {/* Zone modal */}
+      {showZoneModal && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40" onClick={() => setShowZoneModal(false)}>
+          <div className="bg-white rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
+            <h3 className="text-xl font-extrabold text-gray-900 mb-4">
+              {editingZone ? 'Editar Zona' : 'Adicionar Cidade'}
+            </h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-1">Cidade *</label>
+                <CityCombobox
+                  value={zoneForm.city}
+                  onChange={(city, state) => setZoneForm((f) => ({ ...f, city, state }))}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-2">Dias de entrega *</label>
+                <div className="flex flex-wrap gap-2">
+                  {DAYS.map((day) => (
+                    <button
+                      key={day.value}
+                      type="button"
+                      onClick={() => toggleZoneDay(day.value)}
+                      className={`px-3 py-1.5 rounded-xl text-sm font-semibold transition-colors ${
+                        zoneForm.days.includes(day.value) ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {day.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Início *</label>
+                  <input
+                    type="time"
+                    value={zoneForm.hours_start}
+                    onChange={(e) => setZoneForm((f) => ({ ...f, hours_start: e.target.value }))}
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Fim *</label>
+                  <input
+                    type="time"
+                    value={zoneForm.hours_end}
+                    onChange={(e) => setZoneForm((f) => ({ ...f, hours_end: e.target.value }))}
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSaveZone}
+                disabled={zoneSaving}
+                className="w-full bg-primary text-white font-bold py-4 rounded-2xl disabled:opacity-60 flex items-center justify-center"
+              >
+                {zoneSaving ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : 'Salvar'}
+              </button>
+              <button type="button" onClick={() => setShowZoneModal(false)} className="w-full py-3 text-gray-500 font-semibold">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
