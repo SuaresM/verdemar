@@ -40,19 +40,22 @@ app.post('/orders', requireAuth, async (c) => {
   const quantityByProduct: Record<string, number> = {}
   for (const item of items) {
     const pid = item.product_id as string
-    quantityByProduct[pid] = (quantityByProduct[pid] || 0) + (item.quantity as number)
+    const qty = Number(item.quantity)
+    if (pid && isFinite(qty) && qty > 0) {
+      quantityByProduct[pid] = (quantityByProduct[pid] ?? 0) + qty
+    }
   }
-  await Promise.all(
+  Promise.all(
     Object.entries(quantityByProduct).map(([pid, qty]) =>
-      adminSupabase.rpc('increment_product_sold', { p_id: pid, p_amount: qty })
+      adminSupabase.rpc('increment_product_sold', { p_id: pid, p_amount: qty }).catch(() => {})
     )
-  )
+  ).catch(() => {})
 
   // Increment supplier total_sales
-  await adminSupabase.rpc('increment_supplier_sales', {
+  adminSupabase.rpc('increment_supplier_sales', {
     p_id: order.supplier_id as string,
     p_amount: orderData.total_value as number,
-  })
+  }).catch(() => {})
 
   sendPush(order.supplier_id as string, orderData.id as string).catch(() => {})
 
@@ -144,7 +147,7 @@ app.post('/supplier/delivery-zones', requireAuth, async (c) => {
 
   const { data, error } = await adminSupabase
     .from('delivery_zones')
-    .insert({ ...body, supplier_id: userId })
+    .insert({ city: body.city, state: body.state, days: body.days, hours_start: body.hours_start, hours_end: body.hours_end, supplier_id: userId })
     .select()
     .single()
   if (error) return c.json({ error: error.message }, 400)
@@ -165,7 +168,7 @@ app.put('/supplier/delivery-zones/:id', requireAuth, async (c) => {
 
   const { error } = await adminSupabase
     .from('delivery_zones')
-    .update(body)
+    .update({ city: body.city, state: body.state, days: body.days, hours_start: body.hours_start, hours_end: body.hours_end })
     .eq('id', zoneId)
     .eq('supplier_id', userId)
   if (error) return c.json({ error: error.message }, 400)
