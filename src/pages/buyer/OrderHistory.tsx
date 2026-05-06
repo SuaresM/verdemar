@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { ChevronDown, ChevronUp, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthStore } from '../../stores/authStore'
-import { getOrdersByBuyer } from '../../services/supabase'
+import { getOrdersByBuyer, getProductsBySupplier } from '../../services/supabase'
+import { useCartStore } from '../../stores/cartStore'
 import type { Order, OrderStatus } from '../../types'
 import { Header } from '../../components/layout/Header'
 import { OrderStatusBadge } from '../../components/shared/Badge'
@@ -19,10 +21,13 @@ const TABS: { value: OrderStatus | 'all'; label: string }[] = [
 
 export default function OrderHistory() {
   const { buyer } = useAuthStore()
+  const navigate = useNavigate()
+  const addItem = useCartStore((s) => s.addItem)
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<OrderStatus | 'all'>('all')
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+  const [reordering, setReordering] = useState<string | null>(null)
 
   useEffect(() => {
     if (!buyer) return
@@ -33,6 +38,39 @@ export default function OrderHistory() {
   }, [buyer])
 
   const filteredOrders = tab === 'all' ? orders : orders.filter((o) => o.status === tab)
+
+  const handleReorder = async (order: Order) => {
+    if (!order.supplier || !order.items) return
+    setReordering(order.id)
+    try {
+      const currentProducts = await getProductsBySupplier(order.supplier.id)
+      const available = currentProducts.filter((p) => p.is_available)
+      const unavailableNames: string[] = []
+
+      order.items.forEach((item) => {
+        const product = available.find((p) => p.id === item.product_id)
+        if (product) {
+          addItem(product, item.quantity, order.supplier!)
+        } else {
+          unavailableNames.push(item.product_name)
+        }
+      })
+
+      if (unavailableNames.length > 0) {
+        toast.warning(
+          `Alguns produtos não estão mais disponíveis: ${unavailableNames.join(', ')}`
+        )
+      }
+
+      if (unavailableNames.length < (order.items?.length ?? 0)) {
+        navigate('/cart')
+      }
+    } catch {
+      toast.error('Erro ao repetir pedido')
+    } finally {
+      setReordering(null)
+    }
+  }
 
   if (loading) return <PageLoader />
 
@@ -115,6 +153,20 @@ export default function OrderHistory() {
                         </p>
                       </div>
                     )}
+                    <button
+                      onClick={() => handleReorder(order)}
+                      disabled={reordering === order.id}
+                      className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 disabled:opacity-50"
+                    >
+                      {reordering === order.id ? (
+                        <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <RotateCcw size={14} />
+                          Repetir pedido
+                        </>
+                      )}
+                    </button>
                   </div>
                 )}
               </div>
