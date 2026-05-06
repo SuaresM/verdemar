@@ -2,8 +2,8 @@ import { Hono } from 'hono'
 import { handle } from 'hono/vercel'
 import { cors } from 'hono/cors'
 import webpush from 'web-push'
-import { adminSupabase } from './_lib/supabase'
-import { requireAuth, requireAdmin, type AuthVariables } from './_lib/auth'
+import { adminSupabase } from './_lib/supabase.js'
+import { requireAuth, requireAdmin, type AuthVariables } from './_lib/auth.js'
 
 export const config = { runtime: 'nodejs' }
 
