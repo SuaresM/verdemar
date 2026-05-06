@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { MapPin, Clock, Truck, ShoppingCart, Phone } from 'lucide-react'
-import { getSupplierById, getProductsBySupplier } from '../../services/supabase'
-import type { Supplier, Product } from '../../types'
+import { getSupplierById, getProductsBySupplier, getDeliveryZonesBySupplier } from '../../services/supabase'
+import type { Supplier, Product, DeliveryZone } from '../../types'
 import { ProductCard } from '../../components/product/ProductCard'
 import { ImageSkeleton } from '../../components/shared/ImageSkeleton'
 import { Header } from '../../components/layout/Header'
 import { PageLoader } from '../../components/shared/LoadingSpinner'
 import { EmptyState } from '../../components/shared/EmptyState'
 import { useCartStore } from '../../stores/cartStore'
+import { useAuthStore } from '../../stores/authStore'
 import { formatCurrency, getDeliveryDaysLabel } from '../../utils'
 
 const CATEGORIES = [
@@ -27,6 +28,8 @@ export default function SupplierProfile() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'products' | 'about'>('products')
   const [category, setCategory] = useState('all')
+  const { buyer } = useAuthStore()
+  const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([])
 
   const sections = useCartStore((s) => s.sections)
   const supplierSection = sections.find((s) => s.supplier.id === id)
@@ -34,10 +37,15 @@ export default function SupplierProfile() {
 
   useEffect(() => {
     if (!id) return
-    Promise.all([getSupplierById(id), getProductsBySupplier(id)])
-      .then(([sup, prods]) => {
+    Promise.all([
+      getSupplierById(id),
+      getProductsBySupplier(id),
+      getDeliveryZonesBySupplier(id),
+    ])
+      .then(([sup, prods, zones]) => {
         setSupplier(sup)
         setProducts(prods ?? [])
+        setDeliveryZones(zones)
       })
       .catch((err) => {
         console.error('Erro ao carregar fornecedor:', err)
@@ -82,7 +90,14 @@ export default function SupplierProfile() {
         </div>
 
         <div className="flex flex-wrap gap-3 mt-3">
-          {supplier.delivery_days.length > 0 && (
+          {deliveryZones.length > 0 ? (
+            <div className="flex items-center gap-1 bg-gray-50 rounded-xl px-3 py-1.5">
+              <Truck size={13} className="text-primary" />
+              <span className="text-xs font-semibold text-gray-700">
+                Entrega em {deliveryZones.length} {deliveryZones.length === 1 ? 'cidade' : 'cidades'}
+              </span>
+            </div>
+          ) : supplier.delivery_days.length > 0 && (
             <div className="flex items-center gap-1 bg-gray-50 rounded-xl px-3 py-1.5">
               <Truck size={13} className="text-primary" />
               <span className="text-xs font-semibold text-gray-700">{getDeliveryDaysLabel(supplier.delivery_days)}</span>
@@ -170,16 +185,50 @@ export default function SupplierProfile() {
                 <MapPin size={14} className="text-primary" />
                 <span>{supplier.address_city}, {supplier.address_state}</span>
               </div>
-              <div className="flex items-center gap-2 text-gray-600">
-                <Truck size={14} className="text-primary" />
-                <span>Entrega: {getDeliveryDaysLabel(supplier.delivery_days)}</span>
-              </div>
-              <div className="flex items-center gap-2 text-gray-600">
-                <Clock size={14} className="text-primary" />
-                <span>Horário: {supplier.delivery_hours_start} às {supplier.delivery_hours_end}</span>
-              </div>
             </div>
           </div>
+          {/* Delivery Zones */}
+          {deliveryZones.length > 0 ? (
+            <div className="bg-white rounded-2xl p-4 shadow-sm">
+              <p className="font-bold text-gray-700 mb-3">Zonas de Entrega</p>
+              <div className="space-y-2">
+                {deliveryZones.map((zone) => {
+                  const isMyCity = buyer?.address_city === zone.city
+                  return (
+                    <div
+                      key={zone.id}
+                      className={`flex items-center justify-between p-3 rounded-xl ${
+                        isMyCity ? 'bg-green-50 border border-green-100' : 'bg-gray-50'
+                      }`}
+                    >
+                      <div>
+                        <p className={`font-semibold text-sm ${isMyCity ? 'text-green-700' : 'text-gray-800'}`}>
+                          {zone.city} — {zone.state}
+                          {isMyCity && <span className="ml-2 text-xs">✓ Sua cidade</span>}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {getDeliveryDaysLabel(zone.days)} · {zone.hours_start}–{zone.hours_end}
+                        </p>
+                      </div>
+                      <Truck size={14} className={isMyCity ? 'text-green-500' : 'text-gray-400'} />
+                    </div>
+                  )
+                })}
+              </div>
+              {buyer?.address_city && !deliveryZones.some((z) => z.city === buyer.address_city) && (
+                <p className="text-xs text-amber-600 mt-3 font-semibold">
+                  ⚠️ Este fornecedor não lista entrega em {buyer.address_city}. Consulte pelo WhatsApp.
+                </p>
+              )}
+            </div>
+          ) : supplier.delivery_days.length > 0 ? (
+            <div className="bg-white rounded-2xl p-4 shadow-sm">
+              <p className="font-bold text-gray-700 mb-2">Entrega</p>
+              <p className="text-sm text-gray-600">
+                {getDeliveryDaysLabel(supplier.delivery_days)} · {supplier.delivery_hours_start}–{supplier.delivery_hours_end}
+              </p>
+            </div>
+          ) : null}
         </div>
       )}
 
