@@ -47,15 +47,15 @@ app.post('/orders', requireAuth, async (c) => {
   }
   Promise.all(
     Object.entries(quantityByProduct).map(([pid, qty]) =>
-      adminSupabase.rpc('increment_product_sold', { p_id: pid, p_amount: qty }).catch(() => {})
+      Promise.resolve(adminSupabase.rpc('increment_product_sold', { p_id: pid, p_amount: qty })).catch(() => {})
     )
   ).catch(() => {})
 
   // Increment supplier total_sales
-  adminSupabase.rpc('increment_supplier_sales', {
+  Promise.resolve(adminSupabase.rpc('increment_supplier_sales', {
     p_id: order.supplier_id as string,
     p_amount: orderData.total_value as number,
-  }).catch(() => {})
+  })).catch(() => {})
 
   sendPush(order.supplier_id as string, orderData.id as string).catch(() => {})
 
