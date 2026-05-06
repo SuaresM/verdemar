@@ -374,12 +374,13 @@ export async function getDeliveryZonesBySupplier(supplierId: string): Promise<De
     .select('*')
     .eq('supplier_id', supplierId)
     .order('city')
+    .order('state')
   if (error) return []
-  return data
+  return data ?? []
 }
 
 export async function createDeliveryZone(
-  zone: Omit<DeliveryZone, 'id' | 'created_at'>
+  zone: Omit<DeliveryZone, 'id' | 'created_at' | 'supplier_id'>
 ): Promise<DeliveryZone> {
   return apiClient.post<DeliveryZone>('/supplier/delivery-zones', zone)
 }
