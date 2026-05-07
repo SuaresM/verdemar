@@ -32,8 +32,6 @@ const schema = z.object({
   address_city: z.string().min(2, 'Cidade obrigatória'),
   address_state: z.string().min(2, 'Estado obrigatório'),
   description: z.string().optional(),
-  delivery_hours_start: z.string().min(1, 'Obrigatório'),
-  delivery_hours_end: z.string().min(1, 'Obrigatório'),
   min_order_value: z.string().optional(),
   min_order_quantity: z.string().optional(),
 })
@@ -44,7 +42,6 @@ export default function StoreSettings() {
   const { supplier, signOut, setSupplier } = useAuthStore()
   const navigate = useNavigate()
   const [saving, setSaving] = useState(false)
-  const [deliveryDays, setDeliveryDays] = useState<string[]>(supplier?.delivery_days || [])
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [bannerFile, setBannerFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState(supplier?.logo_url || '')
@@ -80,18 +77,10 @@ export default function StoreSettings() {
       address_city: supplier?.address_city || '',
       address_state: supplier?.address_state || '',
       description: supplier?.description || '',
-      delivery_hours_start: supplier?.delivery_hours_start || '',
-      delivery_hours_end: supplier?.delivery_hours_end || '',
       min_order_value: supplier?.min_order_value?.toString() || '',
       min_order_quantity: supplier?.min_order_quantity?.toString() || '',
     },
   })
-
-  const toggleDay = (day: string) => {
-    setDeliveryDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
-    )
-  }
 
   const openAddZone = () => {
     setEditingZone(null)
@@ -163,10 +152,6 @@ export default function StoreSettings() {
 
   const onSubmit = async (data: FormData) => {
     if (!supplier) return
-    if (deliveryDays.length === 0) {
-      toast.error('Selecione ao menos um dia de entrega')
-      return
-    }
     setSaving(true)
     try {
       let logo_url = supplier.logo_url
@@ -181,9 +166,6 @@ export default function StoreSettings() {
         address_city: data.address_city,
         address_state: data.address_state,
         description: data.description,
-        delivery_days: deliveryDays,
-        delivery_hours_start: data.delivery_hours_start,
-        delivery_hours_end: data.delivery_hours_end,
         min_order_value: data.min_order_value ? parseFloat(data.min_order_value) : undefined,
         min_order_quantity: data.min_order_quantity ? parseInt(data.min_order_quantity) : undefined,
         logo_url: logo_url || undefined,
@@ -308,27 +290,6 @@ export default function StoreSettings() {
         {/* Delivery */}
         <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
           <p className="font-bold text-gray-700">Entrega</p>
-          <div>
-            <label className="block text-sm font-semibold text-gray-600 mb-2">Dias de Entrega *</label>
-            <div className="flex flex-wrap gap-2">
-              {DAYS.map((day) => (
-                <button
-                  key={day.value}
-                  type="button"
-                  onClick={() => toggleDay(day.value)}
-                  className={`px-3 py-1.5 rounded-xl text-sm font-semibold transition-colors ${
-                    deliveryDays.includes(day.value) ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'
-                  }`}
-                >
-                  {day.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <InputField label="Início" type="time" error={errors.delivery_hours_start?.message} {...register('delivery_hours_start')} />
-            <InputField label="Fim" type="time" error={errors.delivery_hours_end?.message} {...register('delivery_hours_end')} />
-          </div>
           <div className="grid grid-cols-2 gap-3">
             <InputField label="Mínimo (R$)" type="number" placeholder="Ex: 200" error={errors.min_order_value?.message} {...register('min_order_value')} />
             <InputField label="Mínimo (itens)" type="number" placeholder="Ex: 10" error={errors.min_order_quantity?.message} {...register('min_order_quantity')} />
