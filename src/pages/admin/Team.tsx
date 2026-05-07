@@ -5,6 +5,7 @@ import { Header } from '../../components/layout/Header'
 import { PageLoader } from '../../components/shared/LoadingSpinner'
 import { EmptyState } from '../../components/shared/EmptyState'
 import type { Profile, UserRole } from '../../types'
+import { apiClient } from '../../lib/apiClient'
 
 const ROLE_LABELS: Record<UserRole, string> = {
   buyer: 'Comprador',
@@ -25,6 +26,7 @@ export default function AdminTeam() {
   const [page, setPage] = useState(0)
   const [hasMore, setHasMore] = useState(false)
   const [updating, setUpdating] = useState<string | null>(null)
+  const [resetting, setResetting] = useState<string | null>(null)
 
   const load = async (reset = false) => {
     const currentPage = reset ? 0 : page
@@ -54,6 +56,18 @@ export default function AdminTeam() {
       toast.error('Erro ao atualizar função')
     } finally {
       setUpdating(null)
+    }
+  }
+
+  const handleResetPassword = async (userId: string) => {
+    setResetting(userId)
+    try {
+      await apiClient.post('/admin/reset-password', { userId })
+      toast.success('Link enviado!')
+    } catch {
+      toast.error('Erro ao enviar link')
+    } finally {
+      setResetting(null)
     }
   }
 
@@ -96,6 +110,13 @@ export default function AdminTeam() {
                     </button>
                   ))}
                 </div>
+                <button
+                  onClick={() => handleResetPassword(profile.id)}
+                  disabled={resetting === profile.id}
+                  className="w-full mt-2 py-1.5 rounded-xl text-xs font-semibold bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors disabled:opacity-40"
+                >
+                  {resetting === profile.id ? 'Enviando...' : 'Resetar senha'}
+                </button>
               </div>
             ))}
 
