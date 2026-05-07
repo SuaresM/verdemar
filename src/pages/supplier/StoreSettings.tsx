@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Camera, MessageCircle, LogOut, Plus, Pencil, Trash2 } from 'lucide-react'
+import { Camera, MessageCircle, LogOut, Plus, Pencil, Trash2, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../stores/authStore'
@@ -14,6 +14,7 @@ import { CityCombobox } from '../../components/shared/CityCombobox'
 import { getDeliveryZonesBySupplier, createDeliveryZone, updateDeliveryZone, deleteDeliveryZone } from '../../services/supabase'
 import type { DeliveryZone } from '../../types'
 import { getDeliveryDaysLabel } from '../../utils'
+import { supabase } from '../../lib/supabaseClient'
 
 const DAYS = [
   { value: 'monday', label: 'Seg' },
@@ -60,6 +61,9 @@ export default function StoreSettings() {
     hours_end: '',
   })
   const [zoneSaving, setZoneSaving] = useState(false)
+  const [showPwModal, setShowPwModal] = useState(false)
+  const [pwForm, setPwForm] = useState({ password: '', confirm: '' })
+  const [pwSaving, setPwSaving] = useState(false)
 
   useEffect(() => {
     if (!supplier) return
@@ -213,6 +217,29 @@ export default function StoreSettings() {
     navigate('/login')
   }
 
+  const handleSavePassword = async () => {
+    if (pwForm.password.length < 8) {
+      toast.error('Senha deve ter no mínimo 8 caracteres')
+      return
+    }
+    if (pwForm.password !== pwForm.confirm) {
+      toast.error('As senhas não coincidem')
+      return
+    }
+    setPwSaving(true)
+    try {
+      const { error } = await supabase.auth.updateUser({ password: pwForm.password })
+      if (error) throw error
+      toast.success('Senha alterada com sucesso!')
+      setShowPwModal(false)
+      setPwForm({ password: '', confirm: '' })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao alterar senha')
+    } finally {
+      setPwSaving(false)
+    }
+  }
+
   const InputField = ({
     label,
     error,
@@ -348,6 +375,19 @@ export default function StoreSettings() {
           )}
         </div>
 
+        {/* Security */}
+        <div className="bg-white rounded-2xl shadow-sm p-4">
+          <p className="font-bold text-gray-700">Segurança</p>
+          <button
+            type="button"
+            onClick={() => setShowPwModal(true)}
+            className="w-full flex items-center gap-3 p-3 bg-gray-50 rounded-xl mt-3"
+          >
+            <Lock size={18} className="text-gray-400" />
+            <p className="text-sm font-semibold text-gray-700">Alterar senha</p>
+          </button>
+        </div>
+
         <button
           type="submit"
           disabled={saving}
@@ -452,6 +492,51 @@ export default function StoreSettings() {
                 ) : 'Salvar'}
               </button>
               <button type="button" onClick={() => setShowZoneModal(false)} className="w-full py-3 text-gray-500 font-semibold">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Password modal */}
+      {showPwModal && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40" onClick={() => setShowPwModal(false)}>
+          <div className="bg-white rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
+            <h3 className="text-xl font-extrabold text-gray-900 mb-4">Alterar senha</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-1">Nova senha</label>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  value={pwForm.password}
+                  onChange={(e) => setPwForm((f) => ({ ...f, password: e.target.value }))}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-1">Confirmar nova senha</label>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  value={pwForm.confirm}
+                  onChange={(e) => setPwForm((f) => ({ ...f, confirm: e.target.value }))}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleSavePassword}
+                disabled={pwSaving}
+                className="w-full bg-primary text-white font-bold py-4 rounded-2xl disabled:opacity-60 flex items-center justify-center"
+              >
+                {pwSaving ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : 'Salvar'}
+              </button>
+              <button type="button" onClick={() => setShowPwModal(false)} className="w-full py-3 text-gray-500 font-semibold">
                 Cancelar
               </button>
             </div>
