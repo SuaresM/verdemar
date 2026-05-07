@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { MapPin, Clock, Truck, ShoppingCart, Phone } from 'lucide-react'
+import { MapPin, Truck, ShoppingCart, Phone } from 'lucide-react'
 import { getSupplierById, getProductsBySupplier, getDeliveryZonesBySupplier } from '../../services/supabase'
 import type { Supplier, Product, DeliveryZone } from '../../types'
 import { ProductCard } from '../../components/product/ProductCard'
@@ -90,23 +90,14 @@ export default function SupplierProfile() {
         </div>
 
         <div className="flex flex-wrap gap-3 mt-3">
-          {deliveryZones.length > 0 ? (
+          {deliveryZones.length > 0 && (
             <div className="flex items-center gap-1 bg-gray-50 rounded-xl px-3 py-1.5">
               <Truck size={13} className="text-primary" />
               <span className="text-xs font-semibold text-gray-700">
                 Entrega em {deliveryZones.length} {deliveryZones.length === 1 ? 'cidade' : 'cidades'}
               </span>
             </div>
-          ) : supplier.delivery_days.length > 0 && (
-            <div className="flex items-center gap-1 bg-gray-50 rounded-xl px-3 py-1.5">
-              <Truck size={13} className="text-primary" />
-              <span className="text-xs font-semibold text-gray-700">{getDeliveryDaysLabel(supplier.delivery_days)}</span>
-            </div>
           )}
-          <div className="flex items-center gap-1 bg-gray-50 rounded-xl px-3 py-1.5">
-            <Clock size={13} className="text-primary" />
-            <span className="text-xs font-semibold text-gray-700">{supplier.delivery_hours_start} - {supplier.delivery_hours_end}</span>
-          </div>
           {(supplier.min_order_value || supplier.min_order_quantity) && (
             <div className="bg-accent/10 rounded-xl px-3 py-1.5">
               <span className="text-xs font-semibold text-accent">
@@ -190,7 +181,7 @@ export default function SupplierProfile() {
           {/* Delivery Zones */}
           {deliveryZones.length > 0 ? (
             <div className="bg-white rounded-2xl p-4 shadow-sm">
-              <p className="font-bold text-gray-700 mb-3">Zonas de Entrega</p>
+              <p className="font-bold text-gray-700 mb-3">Regiões de Entrega</p>
               <div className="space-y-2">
                 {deliveryZones.map((zone) => {
                   const isMyCity = buyer?.address_city === zone.city
@@ -203,7 +194,7 @@ export default function SupplierProfile() {
                     >
                       <div>
                         <p className={`font-semibold text-sm ${isMyCity ? 'text-green-700' : 'text-gray-800'}`}>
-                          {zone.city} — {zone.state}
+                          📍 {zone.city} — {zone.state}
                           {isMyCity && <span className="ml-2 text-xs">✓ Sua cidade</span>}
                         </p>
                         <p className="text-xs text-gray-500">
@@ -220,13 +211,6 @@ export default function SupplierProfile() {
                   ⚠️ Este fornecedor não lista entrega em {buyer.address_city}. Consulte pelo WhatsApp.
                 </p>
               )}
-            </div>
-          ) : supplier.delivery_days.length > 0 ? (
-            <div className="bg-white rounded-2xl p-4 shadow-sm">
-              <p className="font-bold text-gray-700 mb-2">Entrega</p>
-              <p className="text-sm text-gray-600">
-                {getDeliveryDaysLabel(supplier.delivery_days)} · {supplier.delivery_hours_start}–{supplier.delivery_hours_end}
-              </p>
             </div>
           ) : null}
         </div>
