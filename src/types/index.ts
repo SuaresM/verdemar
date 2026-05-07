@@ -37,9 +37,9 @@ export interface Supplier {
   whatsapp: string
   min_order_value?: number
   min_order_quantity?: number
-  delivery_days: string[]
-  delivery_hours_start: string
-  delivery_hours_end: string
+  delivery_days?: string[]
+  delivery_hours_start?: string
+  delivery_hours_end?: string
   address_city: string
   address_state: string
   is_active: boolean
