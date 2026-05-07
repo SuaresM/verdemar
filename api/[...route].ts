@@ -219,6 +219,21 @@ app.patch('/admin/users/:id/role', requireAuth, requireAdmin, async (c) => {
   return c.json({ ok: true })
 })
 
+app.post('/admin/reset-password', requireAuth, requireAdmin, async (c) => {
+  const { userId } = await c.req.json<{ userId: string }>()
+
+  const { data: { user }, error: userErr } = await adminSupabase.auth.admin.getUserById(userId)
+  if (userErr || !user?.email) return c.json({ error: 'User not found' }, 404)
+
+  const { error: linkErr } = await adminSupabase.auth.admin.generateLink({
+    type: 'recovery',
+    email: user.email,
+  })
+  if (linkErr) return c.json({ error: linkErr.message }, 400)
+
+  return c.json({ ok: true })
+})
+
 app.patch('/admin/suppliers/:id/status', requireAuth, requireAdmin, async (c) => {
   const id = c.req.param('id')
   const { is_active } = await c.req.json<{ is_active: boolean }>()
