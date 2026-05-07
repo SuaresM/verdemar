@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Search as SearchIcon, X } from 'lucide-react'
-import { searchProducts, searchSuppliers } from '../../services/supabase'
+import { searchProducts, searchSuppliers, getZoneCountsBySuppliers } from '../../services/supabase'
 import type { Product, Supplier } from '../../types'
 import { ProductCard } from '../../components/product/ProductCard'
 import { SupplierCard } from '../../components/supplier/SupplierCard'
@@ -33,6 +33,7 @@ export default function Search() {
   const [supplierPage, setSupplierPage] = useState(0)
   const [hasMoreProducts, setHasMoreProducts] = useState(false)
   const [hasMoreSuppliers, setHasMoreSuppliers] = useState(false)
+  const [zoneCounts, setZoneCounts] = useState<Record<string, number>>({})
   const lastSearchRef = useRef({ query: '', category: '' })
   const skipNextCategoryEffect = useRef(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -49,11 +50,17 @@ export default function Search() {
       Promise.all([
         searchProducts(undefined, catParam, 0),
         searchSuppliers('', undefined, 0),
-      ]).then(([prodResult, supResult]) => {
+      ]).then(async ([prodResult, supResult]) => {
         setProducts(prodResult.data)
         setHasMoreProducts(prodResult.hasMore)
         setSuppliers(supResult.data)
         setHasMoreSuppliers(supResult.hasMore)
+        if (supResult.data.length > 0) {
+          const counts = await getZoneCountsBySuppliers(supResult.data.map((s) => s.id))
+          setZoneCounts(counts)
+        } else {
+          setZoneCounts({})
+        }
         setProductPage(0)
         setSupplierPage(0)
         lastSearchRef.current = { query: '', category: catParam }
@@ -77,6 +84,12 @@ export default function Search() {
       setHasMoreProducts(prodResult.hasMore)
       setSuppliers(supResult.data)
       setHasMoreSuppliers(supResult.hasMore)
+      if (supResult.data.length > 0) {
+        const counts = await getZoneCountsBySuppliers(supResult.data.map((s) => s.id))
+        setZoneCounts(counts)
+      } else {
+        setZoneCounts({})
+      }
     } finally {
       setLoading(false)
     }
@@ -105,6 +118,10 @@ export default function Search() {
       setSuppliers((prev) => [...prev, ...result.data])
       setHasMoreSuppliers(result.hasMore)
       setSupplierPage(nextPage)
+      if (result.data.length > 0) {
+        const newCounts = await getZoneCountsBySuppliers(result.data.map((s) => s.id))
+        setZoneCounts((prev) => ({ ...prev, ...newCounts }))
+      }
     } finally {
       setLoadingMore(false)
     }
@@ -244,7 +261,7 @@ export default function Search() {
             ) : (
               <div className="space-y-3">
                 {suppliers.map((supplier) => (
-                  <SupplierCard key={supplier.id} supplier={supplier} />
+                  <SupplierCard key={supplier.id} supplier={supplier} zoneCount={zoneCounts[supplier.id]} />
                 ))}
               </div>
             )}

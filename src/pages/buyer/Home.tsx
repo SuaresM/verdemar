@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MapPin, RefreshCw } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
-import { getFeaturedProducts, getFeaturedSuppliers } from '../../services/supabase'
+import { getFeaturedProducts, getFeaturedSuppliers, getZoneCountsBySuppliers } from '../../services/supabase'
 import type { Product, Supplier } from '../../types'
 import { ProductCard } from '../../components/product/ProductCard'
 import { SupplierCard } from '../../components/supplier/SupplierCard'
@@ -24,6 +24,7 @@ export default function Home() {
   const [products, setProducts] = useState<Product[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [refreshing, setRefreshing] = useState(false)
+  const [zoneCounts, setZoneCounts] = useState<Record<string, number>>({})
 
   useOnboarding('buyer')
 
@@ -31,6 +32,10 @@ export default function Home() {
     const [prods, sups] = await Promise.all([getFeaturedProducts(), getFeaturedSuppliers()])
     setProducts(prods)
     setSuppliers(sups)
+    if (sups.length > 0) {
+      const counts = await getZoneCountsBySuppliers(sups.map((s) => s.id))
+      setZoneCounts(counts)
+    }
   }, [])
 
   useEffect(() => {
@@ -127,7 +132,7 @@ export default function Home() {
           <h2 className="font-bold text-gray-900 mb-3">Fornecedores em Destaque</h2>
           <div className="space-y-3">
             {suppliers.map((supplier) => (
-              <SupplierCard key={supplier.id} supplier={supplier} />
+              <SupplierCard key={supplier.id} supplier={supplier} zoneCount={zoneCounts[supplier.id]} />
             ))}
           </div>
         </div>
