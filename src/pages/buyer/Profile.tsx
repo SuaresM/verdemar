@@ -1,18 +1,22 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LogOut, MessageCircle, User, Building, MapPin, Phone, Clock, Edit2, Save, X } from 'lucide-react'
+import { LogOut, MessageCircle, User, Building, MapPin, Phone, Clock, Edit2, Save, X, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthStore } from '../../stores/authStore'
 import { updateBuyer } from '../../services/supabase'
 import { Header } from '../../components/layout/Header'
 import { openSupportWhatsApp } from '../../services/whatsapp'
 import { formatCNPJ, formatPhone } from '../../utils'
+import { supabase } from '../../lib/supabaseClient'
 
 export default function Profile() {
   const { buyer, profile, signOut } = useAuthStore()
   const navigate = useNavigate()
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [showPwModal, setShowPwModal] = useState(false)
+  const [pwForm, setPwForm] = useState({ password: '', confirm: '' })
+  const [pwSaving, setPwSaving] = useState(false)
   const [form, setForm] = useState({
     company_name: buyer?.company_name || '',
     contact_phone: buyer?.contact_phone || '',
@@ -43,6 +47,29 @@ export default function Profile() {
       toast.error('Erro ao salvar')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleSavePassword = async () => {
+    if (pwForm.password.length < 8) {
+      toast.error('Senha deve ter no mínimo 8 caracteres')
+      return
+    }
+    if (pwForm.password !== pwForm.confirm) {
+      toast.error('As senhas não coincidem')
+      return
+    }
+    setPwSaving(true)
+    try {
+      const { error } = await supabase.auth.updateUser({ password: pwForm.password })
+      if (error) throw error
+      toast.success('Senha alterada com sucesso!')
+      setShowPwModal(false)
+      setPwForm({ password: '', confirm: '' })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao alterar senha')
+    } finally {
+      setPwSaving(false)
     }
   }
 
@@ -175,6 +202,16 @@ export default function Profile() {
           </button>
 
           <button
+            onClick={() => setShowPwModal(true)}
+            className="w-full bg-white rounded-2xl shadow-sm p-4 flex items-center gap-3 text-left"
+          >
+            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+              <Lock size={20} className="text-blue-600" />
+            </div>
+            <p className="font-bold text-gray-700">Alterar senha</p>
+          </button>
+
+          <button
             onClick={handleSignOut}
             className="w-full bg-white rounded-2xl shadow-sm p-4 flex items-center gap-3 text-left"
           >
@@ -185,6 +222,51 @@ export default function Profile() {
           </button>
         </div>
       </div>
+
+      {/* Password modal */}
+      {showPwModal && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40" onClick={() => setShowPwModal(false)}>
+          <div className="bg-white rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
+            <h3 className="text-xl font-extrabold text-gray-900 mb-4">Alterar senha</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-1">Nova senha</label>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  value={pwForm.password}
+                  onChange={(e) => setPwForm((f) => ({ ...f, password: e.target.value }))}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-1">Confirmar nova senha</label>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  value={pwForm.confirm}
+                  onChange={(e) => setPwForm((f) => ({ ...f, confirm: e.target.value }))}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleSavePassword}
+                disabled={pwSaving}
+                className="w-full bg-primary text-white font-bold py-4 rounded-2xl disabled:opacity-60 flex items-center justify-center"
+              >
+                {pwSaving ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : 'Salvar'}
+              </button>
+              <button type="button" onClick={() => setShowPwModal(false)} className="w-full py-3 text-gray-500 font-semibold">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
