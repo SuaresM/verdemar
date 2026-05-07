@@ -8,8 +8,10 @@ import { createHandlerBoundToURL } from 'workbox-precaching'
 
 declare const self: ServiceWorkerGlobalScope
 
-// Take over immediately on new deploys so users don't stay on stale bundles.
-self.skipWaiting()
+// clientsClaim() faz o SW controlar abas abertas após ativação.
+// Não usamos skipWaiting() — sem ele, o novo SW só ativa quando todas as
+// abas do site estiverem fechadas, evitando que uma aba tente carregar
+// chunks de dois builds diferentes ao mesmo tempo (ChunkLoadError).
 clientsClaim()
 
 // Inject precache manifest (replaced at build time by vite-plugin-pwa)
