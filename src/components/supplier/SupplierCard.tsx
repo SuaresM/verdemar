@@ -1,14 +1,15 @@
-import { MapPin, Clock, Truck, Flame } from 'lucide-react'
+import { MapPin, Truck, Flame } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import type { Supplier } from '../../types'
-import { formatCurrency, getDeliveryDaysLabel } from '../../utils'
+import { formatCurrency } from '../../utils'
 import { ImageSkeleton } from '../shared/ImageSkeleton'
 
 interface SupplierCardProps {
   supplier: Supplier
+  zoneCount?: number
 }
 
-export function SupplierCard({ supplier }: SupplierCardProps) {
+export function SupplierCard({ supplier, zoneCount }: SupplierCardProps) {
   return (
     <Link to={`/supplier/${supplier.id}`}>
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden active:scale-[0.99] transition-transform">
@@ -37,10 +38,10 @@ export function SupplierCard({ supplier }: SupplierCardProps) {
             </div>
 
             <div className="flex flex-wrap gap-2 mt-1.5">
-              {supplier.delivery_days.length > 0 && (
+              {(zoneCount ?? 0) > 0 && (
                 <span className="inline-flex items-center gap-1 text-xs text-gray-500">
                   <Truck size={11} />
-                  {getDeliveryDaysLabel(supplier.delivery_days)}
+                  {zoneCount} {zoneCount === 1 ? 'cidade' : 'cidades'} de entrega
                 </span>
               )}
               {(supplier.min_order_value || supplier.min_order_quantity) && (
@@ -62,14 +63,6 @@ export function SupplierCard({ supplier }: SupplierCardProps) {
           )}
         </div>
 
-        {supplier.delivery_hours_start && supplier.delivery_hours_end && (
-          <div className="px-4 pb-3">
-            <div className="flex items-center gap-1 text-xs text-gray-400">
-              <Clock size={11} />
-              <span>Entrega: {supplier.delivery_hours_start} às {supplier.delivery_hours_end}</span>
-            </div>
-          </div>
-        )}
       </div>
     </Link>
   )

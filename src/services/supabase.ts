@@ -395,3 +395,19 @@ export async function updateDeliveryZone(
 export async function deleteDeliveryZone(id: string): Promise<void> {
   await apiClient.delete(`/supplier/delivery-zones/${id}`)
 }
+
+export async function getZoneCountsBySuppliers(
+  supplierIds: string[]
+): Promise<Record<string, number>> {
+  if (supplierIds.length === 0) return {}
+  const { data, error } = await supabase
+    .from('delivery_zones')
+    .select('supplier_id')
+    .in('supplier_id', supplierIds)
+  if (error || !data) return {}
+  const counts: Record<string, number> = {}
+  for (const row of data) {
+    counts[row.supplier_id] = (counts[row.supplier_id] ?? 0) + 1
+  }
+  return counts
+}
