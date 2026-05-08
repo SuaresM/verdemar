@@ -154,6 +154,7 @@ export default function Cart() {
   const [checkoutSection, setCheckoutSection] = useState<CartSection | null>(null)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [checkoutSuccess, setCheckoutSuccess] = useState<{ whatsappUrl: string; supplierName: string; orderId: string } | null>(null)
+  const [whatsappOpened, setWhatsappOpened] = useState(false)
   const [supplierZones, setSupplierZones] = useState<Record<string, DeliveryZone[]>>({})
 
   const totalAll = sections.reduce((sum, s) => sum + s.sectionTotal, 0)
@@ -383,6 +384,7 @@ export default function Cart() {
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => {
+                setWhatsappOpened(true)
                 if (checkoutSuccess) {
                   apiClient.patch(`/orders/${checkoutSuccess.orderId}/whatsapp-sent`, {}).catch(() => {})
                 }
@@ -400,9 +402,11 @@ export default function Cart() {
             <button
               onClick={() => {
                 setCheckoutSuccess(null)
+                setWhatsappOpened(false)
                 navigate('/orders')
               }}
-              className="w-full py-3 text-gray-400 text-sm font-semibold"
+              disabled={!whatsappOpened}
+              className="w-full py-3 text-gray-400 text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Ver meus pedidos
             </button>
