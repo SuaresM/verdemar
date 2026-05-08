@@ -60,6 +60,9 @@ export function ProductCard({ product, supplier, onClick }: ProductCardProps) {
 
       <div className="p-3">
         <p className="font-bold text-gray-900 text-sm line-clamp-2 mb-1">{product.name}</p>
+        {sup?.store_name && (
+          <p className="text-xs text-gray-500 mb-1">🏪 {sup.store_name}</p>
+        )}
         <PriceTag product={product} size="sm" />
 
         <div className="mt-2" onClick={(e) => e.stopPropagation()}>
