@@ -26,6 +26,16 @@ const DAYS = [
   { value: 'sunday', label: 'Dom' },
 ]
 
+const DF_RAS = [
+  'Plano Piloto', 'Gama', 'Taguatinga', 'Brazlândia', 'Sobradinho',
+  'Planaltina', 'Paranoá', 'Núcleo Bandeirante', 'Ceilândia', 'Guará',
+  'Cruzeiro', 'Samambaia', 'Santa Maria', 'São Sebastião', 'Recanto das Emas',
+  'Lago Sul', 'Lago Norte', 'Candangolândia', 'Riacho Fundo', 'Águas Claras',
+  'Riacho Fundo II', 'SCIA/Estrutural', 'Sobradinho II', 'Jardim Botânico',
+  'Itapoã', 'SIA', 'Vicente Pires', 'Fercal', 'Sol Nascente/Pôr do Sol',
+  'Arniqueira', 'Arapoanga', 'Água Quente',
+]
+
 const schema = z.object({
   store_name: z.string().min(2, 'Nome obrigatório'),
   whatsapp: z.string().min(10, 'WhatsApp inválido'),
@@ -82,9 +92,9 @@ export default function StoreSettings() {
     },
   })
 
-  const openAddZone = () => {
+  const openAddZone = (raName?: string) => {
     setEditingZone(null)
-    setZoneForm({ city: '', state: '', days: [], hours_start: '', hours_end: '' })
+    setZoneForm({ city: raName || '', state: raName ? 'DF' : '', days: [], hours_start: '', hours_end: '' })
     setShowZoneModal(true)
   }
 
@@ -299,40 +309,54 @@ export default function StoreSettings() {
         {/* Delivery Zones */}
         <div className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <p className="font-bold text-gray-700">Zonas de Entrega por Cidade</p>
+            <p className="font-bold text-gray-700">Regiões de Entrega — DF</p>
             <button
               type="button"
-              onClick={openAddZone}
+              onClick={() => openAddZone()}
               className="flex items-center gap-1 text-sm text-primary font-semibold"
             >
               <Plus size={16} />
-              Adicionar
+              Outra cidade
             </button>
           </div>
+          <p className="text-xs text-gray-400">Toque em uma região para configurar os dias e horários de entrega</p>
 
           {zonesLoading ? (
             <p className="text-sm text-gray-400 text-center py-2">Carregando...</p>
-          ) : zones.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-2">Nenhuma zona cadastrada</p>
           ) : (
-            zones.map((zone) => (
-              <div key={zone.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                <div>
-                  <p className="font-semibold text-gray-800 text-sm">{zone.city} — {zone.state}</p>
-                  <p className="text-xs text-gray-500">
-                    {getDeliveryDaysLabel(zone.days)} · {zone.hours_start}–{zone.hours_end}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => openEditZone(zone)} className="p-1.5 text-gray-400 hover:text-primary">
-                    <Pencil size={14} />
+            <div className="space-y-2">
+              {DF_RAS.map((ra) => {
+                const zone = zones.find((z) => z.city === ra)
+                return zone ? (
+                  <div key={ra} className="flex items-center justify-between p-3 bg-primary/5 rounded-xl border border-primary/20">
+                    <div>
+                      <p className="font-semibold text-gray-800 text-sm">{ra} — DF</p>
+                      <p className="text-xs text-gray-500">
+                        {getDeliveryDaysLabel(zone.days)} · {zone.hours_start}–{zone.hours_end}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => openEditZone(zone)} className="p-1.5 text-gray-400 hover:text-primary">
+                        <Pencil size={14} />
+                      </button>
+                      <button type="button" onClick={() => handleDeleteZone(zone.id)} className="p-1.5 text-gray-400 hover:text-danger">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    key={ra}
+                    type="button"
+                    onClick={() => openAddZone(ra)}
+                    className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                  >
+                    <p className="text-sm text-gray-500">{ra}</p>
+                    <Plus size={14} className="text-gray-300" />
                   </button>
-                  <button type="button" onClick={() => handleDeleteZone(zone.id)} className="p-1.5 text-gray-400 hover:text-danger">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-            ))
+                )
+              })}
+            </div>
           )}
         </div>
 
@@ -397,10 +421,16 @@ export default function StoreSettings() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-600 mb-1">Cidade *</label>
-                <CityCombobox
-                  value={zoneForm.city}
-                  onChange={(city, state) => setZoneForm((f) => ({ ...f, city, state }))}
-                />
+                {zoneForm.state === 'DF' && zoneForm.city ? (
+                  <div className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-gray-50 text-gray-700">
+                    {zoneForm.city} — DF
+                  </div>
+                ) : (
+                  <CityCombobox
+                    value={zoneForm.city}
+                    onChange={(city, state) => setZoneForm((f) => ({ ...f, city, state }))}
+                  />
+                )}
               </div>
 
               <div>
