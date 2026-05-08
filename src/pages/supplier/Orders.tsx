@@ -9,7 +9,6 @@ import { OrderStatusBadge } from '../../components/shared/Badge'
 import { PageLoader } from '../../components/shared/LoadingSpinner'
 import { EmptyState } from '../../components/shared/EmptyState'
 import { formatCurrency, formatDate, formatPhone, formatOrderStatusMessage, formatOrderEditMessage } from '../../utils'
-import { openWhatsApp } from '../../services/whatsapp'
 
 const STATUS_TRANSITIONS: Record<OrderStatus, { label: string; next: OrderStatus | null }> = {
   pending: { label: 'Confirmar Pedido', next: 'confirmed' },
@@ -205,12 +204,20 @@ export default function SupplierOrders() {
       setOrders((prev) =>
         prev.map((o) => (o.id === order.id ? { ...o, status: nextStatus } : o))
       )
-      toast.success('Status atualizado!')
-
-      // Notify buyer via WhatsApp
       if (order.buyer?.contact_phone) {
         const message = formatOrderStatusMessage(nextStatus, order, supplier)
-        openWhatsApp(order.buyer.contact_phone, message)
+        const phone = order.buyer.contact_phone.replace(/\D/g, '')
+        const whatsappUrl = `https://wa.me/${phone}?text=${message}`
+        toast.success('Status atualizado!', {
+          description: 'Toque abaixo para notificar o comprador via WhatsApp.',
+          action: {
+            label: '💬 Abrir WhatsApp',
+            onClick: () => window.open(whatsappUrl, '_blank'),
+          },
+          duration: 15000,
+        })
+      } else {
+        toast.success('Status atualizado!')
       }
     } catch {
       toast.error('Erro ao atualizar status')
@@ -229,12 +236,20 @@ export default function SupplierOrders() {
             setOrders((prev) =>
               prev.map((o) => (o.id === order.id ? { ...o, status: 'cancelled' } : o))
             )
-            toast.success('Pedido cancelado')
-
-            // Notify buyer
             if (order.buyer?.contact_phone && supplier) {
               const message = formatOrderStatusMessage('cancelled', order, supplier)
-              openWhatsApp(order.buyer.contact_phone, message)
+              const phone = order.buyer.contact_phone.replace(/\D/g, '')
+              const whatsappUrl = `https://wa.me/${phone}?text=${message}`
+              toast.success('Pedido cancelado', {
+                description: 'Toque abaixo para notificar o comprador via WhatsApp.',
+                action: {
+                  label: '💬 Abrir WhatsApp',
+                  onClick: () => window.open(whatsappUrl, '_blank'),
+                },
+                duration: 15000,
+              })
+            } else {
+              toast.success('Pedido cancelado')
             }
           } catch {
             toast.error('Erro ao cancelar')
