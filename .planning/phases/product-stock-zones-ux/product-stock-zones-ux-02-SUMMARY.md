@@ -12,7 +12,7 @@ tags:
 dependency_graph:
   requires: []
   provides:
-    - sell_without_stock boolean column on products table (migration file created; requires manual DB application)
+    - sell_without_stock boolean column on products table (migration applied and verified by orchestrator)
     - Product TypeScript type includes sell_without_stock: boolean
     - PATCH /api/products/:id/stock — auth + ownership + validation + count-check 404
     - PATCH /api/products/:id/sell-without-stock — auth + ownership + validation + count-check 404
@@ -69,7 +69,7 @@ ALTER TABLE products
 
 The migration uses `IF NOT EXISTS` making it idempotent. The `NOT NULL DEFAULT false` means all existing rows get `false` automatically — no backfill needed.
 
-**DB Application Status:** Migration file created and committed. Could not apply to remote Supabase (`mdwifcuaekjboukvsnvg`) programmatically — see Deviations section. The SQL must be run manually in the Supabase SQL Editor before the API routes will work correctly.
+**DB Application Status:** Migration file created and committed. Applied to remote Supabase (`mdwifcuaekjboukvsnvg`) by the orchestrator via MCP after subagent completed. Column verified: `sell_without_stock | boolean | NO | false`.
 
 ### Task 2: Product type + two PATCH API routes
 
