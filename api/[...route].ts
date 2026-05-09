@@ -119,6 +119,50 @@ app.patch('/orders/:id/whatsapp-sent', requireAuth, async (c) => {
   return c.json({ ok: true })
 })
 
+// ── PRODUCTS ────────────────────────────────────────────────────────────────
+
+app.patch('/products/:id/stock', requireAuth, async (c) => {
+  const userId = c.get('userId')
+  const productId = c.req.param('id')
+  const { stock_quantity } = await c.req.json<{ stock_quantity: number }>()
+
+  if (typeof stock_quantity !== 'number' || !isFinite(stock_quantity) || stock_quantity < 0) {
+    return c.json({ error: 'stock_quantity inválido' }, 400)
+  }
+
+  const { error, count } = await adminSupabase
+    .from('products')
+    .update({ stock_quantity, updated_at: new Date().toISOString() })
+    .eq('id', productId)
+    .eq('supplier_id', userId)
+    .select('id', { count: 'exact', head: true })
+  if (error) return c.json({ error: error.message }, 400)
+  if (!count || count === 0) return c.json({ error: 'Produto não encontrado ou sem permissão' }, 404)
+
+  return c.json({ ok: true })
+})
+
+app.patch('/products/:id/sell-without-stock', requireAuth, async (c) => {
+  const userId = c.get('userId')
+  const productId = c.req.param('id')
+  const { sell_without_stock } = await c.req.json<{ sell_without_stock: boolean }>()
+
+  if (typeof sell_without_stock !== 'boolean') {
+    return c.json({ error: 'sell_without_stock inválido' }, 400)
+  }
+
+  const { error, count } = await adminSupabase
+    .from('products')
+    .update({ sell_without_stock, updated_at: new Date().toISOString() })
+    .eq('id', productId)
+    .eq('supplier_id', userId)
+    .select('id', { count: 'exact', head: true })
+  if (error) return c.json({ error: error.message }, 400)
+  if (!count || count === 0) return c.json({ error: 'Produto não encontrado ou sem permissão' }, 404)
+
+  return c.json({ ok: true })
+})
+
 // ── PUSH ─────────────────────────────────────────────────────────────────────
 
 app.post('/push/subscribe', requireAuth, async (c) => {

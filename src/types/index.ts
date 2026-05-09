@@ -64,6 +64,7 @@ export interface Product {
   is_available: boolean
   is_featured: boolean
   stock_quantity?: number
+  sell_without_stock: boolean
   total_sold: number
   created_at?: string
   updated_at?: string
