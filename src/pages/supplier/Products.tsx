@@ -195,6 +195,63 @@ export default function Products() {
                 <div className="p-2">
                   <p className="font-bold text-gray-900 text-xs line-clamp-2 mb-1">{product.name}</p>
                   <PriceTag product={product} size="sm" />
+
+                  {/* D-02: inline stock edit */}
+                  <div className="mt-2">
+                    {editingStock[product.id] !== undefined ? (
+                      <input
+                        type="number"
+                        step="0.001"
+                        min="0"
+                        autoFocus
+                        value={editingStock[product.id]}
+                        onChange={(e) => setEditingStock((p) => ({ ...p, [product.id]: e.target.value }))}
+                        onBlur={() => handleStockSave(product)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            handleStockSave(product)
+                          }
+                          if (e.key === 'Escape') {
+                            e.preventDefault()
+                            handleStockCancel(product)
+                          }
+                        }}
+                        className="w-full px-2 py-1 border border-primary rounded-lg text-xs text-center"
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setEditingStock((p) => ({ ...p, [product.id]: String(product.stock_quantity ?? 0) }))}
+                        className="text-xs text-gray-500 underline-offset-2 hover:underline w-full text-left"
+                        disabled={stockSaving[product.id]}
+                      >
+                        {stockSaving[product.id] ? (
+                          <span className="inline-flex items-center gap-1">
+                            <span className="w-3 h-3 border border-gray-400 border-t-primary rounded-full animate-spin inline-block" />
+                            salvando...
+                          </span>
+                        ) : (
+                          <>{product.stock_quantity ?? 0} em estoque</>
+                        )}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* D-02: sell_without_stock toggle */}
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-xs text-gray-500">Vender sem estoque</p>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleSellWithoutStock(product)}
+                      className={`relative w-9 h-5 rounded-full transition-colors ${product.sell_without_stock ? 'bg-primary' : 'bg-gray-300'}`}
+                      aria-label="Vender sem estoque"
+                      aria-pressed={product.sell_without_stock}
+                    >
+                      <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${product.sell_without_stock ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                    </button>
+                  </div>
+
                   <div className="flex gap-1 mt-2">
                     <button
                       onClick={() => navigate(`/supplier/products/${product.id}/edit`)}
