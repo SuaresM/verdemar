@@ -105,7 +105,10 @@ export default function StoreSettings() {
   }
 
   const handleSaveZone = async () => {
-    if (!supplier) return
+    if (!supplier) {
+      toast.error('Sessão expirada. Recarregue a página.')
+      return
+    }
     if (!zoneForm.city || zoneForm.days.length === 0 || !zoneForm.hours_start || !zoneForm.hours_end) {
       toast.error('Preencha cidade, dias e horário')
       return
@@ -122,8 +125,11 @@ export default function StoreSettings() {
         toast.success('Zona adicionada!')
       }
       setShowZoneModal(false)
+      setEditingZone(null)
     } catch {
       toast.error('Erro ao salvar zona')
+      setShowZoneModal(false)
+      setEditingZone(null)
     } finally {
       setZoneSaving(false)
     }
@@ -411,7 +417,7 @@ export default function StoreSettings() {
 
       {/* Zone modal */}
       {showZoneModal && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40" onClick={() => setShowZoneModal(false)}>
+        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40" onClick={() => { setShowZoneModal(false); setEditingZone(null) }}>
           <div className="bg-white rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
             <h3 className="text-xl font-extrabold text-gray-900 mb-4">
@@ -482,7 +488,7 @@ export default function StoreSettings() {
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : 'Salvar'}
               </button>
-              <button type="button" onClick={() => setShowZoneModal(false)} className="w-full py-3 text-gray-500 font-semibold">
+              <button type="button" onClick={() => { setShowZoneModal(false); setEditingZone(null) }} className="w-full py-3 text-gray-500 font-semibold">
                 Cancelar
               </button>
             </div>
