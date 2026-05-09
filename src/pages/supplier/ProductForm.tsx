@@ -166,6 +166,7 @@ export default function ProductForm() {
         productData.box_price = parseNum(data.box_price)
       } else if (data.sale_unit === 'kg') {
         productData.price_per_kg = parseNum(data.price_per_kg)
+        productData.box_weight_kg = parseNum(data.box_weight_kg)
       } else if (data.sale_unit === 'unit') {
         productData.price_per_unit = parseNum(data.price_per_unit)
         productData.unit_description = data.unit_description || null
@@ -275,15 +276,9 @@ export default function ProductForm() {
 
           {saleUnit === 'box' && (
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Peso da caixa (kg)</label>
-                  <input {...register('box_weight_kg')} type="number" step="0.001" placeholder="Ex: 20" className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Qtd. unidades na caixa</label>
-                  <input {...register('box_unit_quantity')} type="number" placeholder="Ex: 24" className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-                </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Qtd. unidades na caixa</label>
+                <input {...register('box_unit_quantity')} type="number" placeholder="Ex: 24" className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Preco da caixa (R$) *</label>
@@ -299,9 +294,17 @@ export default function ProductForm() {
           )}
 
           {saleUnit === 'kg' && (
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Preco por kg (R$) *</label>
-              <input {...register('price_per_kg')} type="number" step="0.01" placeholder="Ex: 3.50" className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Preco por kg (R$) *</label>
+                <input {...register('price_per_kg')} type="number" step="0.01" placeholder="Ex: 3.50" className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                {errors.price_per_kg && <p className="text-danger text-xs mt-1">{errors.price_per_kg.message}</p>}
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Peso da caixa (kg) *</label>
+                <input {...register('box_weight_kg')} type="number" step="0.001" placeholder="Ex: 20" className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                {errors.box_weight_kg && <p className="text-danger text-xs mt-1">{errors.box_weight_kg.message}</p>}
+              </div>
             </div>
           )}
 
