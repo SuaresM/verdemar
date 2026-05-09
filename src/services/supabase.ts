@@ -152,6 +152,7 @@ export async function getFeaturedProducts(): Promise<Product[]> {
     .select('*, supplier:suppliers(*)')
     .eq('is_featured', true)
     .eq('is_available', true)
+    .or('sell_without_stock.eq.true,stock_quantity.gt.0')
     .order('total_sold', { ascending: false })
     .limit(20)
   if (error) return []
@@ -171,6 +172,7 @@ export async function searchProducts(
     .from('products')
     .select('*, supplier:suppliers(*)')
     .eq('is_available', true)
+    .or('sell_without_stock.eq.true,stock_quantity.gt.0')
   if (query) q = q.ilike('name', `%${query}%`)
   if (category) q = q.eq('category', category)
   q = q.range(from, to + 1) // fetch one extra to detect hasMore
