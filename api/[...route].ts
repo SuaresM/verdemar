@@ -210,12 +210,14 @@ app.put('/supplier/delivery-zones/:id', requireAuth, async (c) => {
     hours_end: string
   }>()
 
-  const { error } = await adminSupabase
+  const { error, count } = await adminSupabase
     .from('delivery_zones')
     .update({ city: body.city, state: body.state, days: body.days, hours_start: body.hours_start, hours_end: body.hours_end })
     .eq('id', zoneId)
     .eq('supplier_id', userId)
+    .select('id', { count: 'exact', head: true })
   if (error) return c.json({ error: error.message }, 400)
+  if (!count || count === 0) return c.json({ error: 'Zona não encontrada ou sem permissão' }, 404)
 
   return c.json({ ok: true })
 })
