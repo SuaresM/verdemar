@@ -4,6 +4,7 @@ import { Plus, Edit2, Trash2, Copy } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthStore } from '../../stores/authStore'
 import { getProductsBySupplier, deleteProduct, updateProduct, createProduct } from '../../services/supabase'
+import { apiClient } from '../../lib/apiClient'
 import type { Product } from '../../types'
 import { Header } from '../../components/layout/Header'
 import { PageLoader } from '../../components/shared/LoadingSpinner'
@@ -27,6 +28,8 @@ export default function Products() {
   const [loading, setLoading] = useState(true)
   const [category, setCategory] = useState('all')
   const [availabilityFilter, setAvailabilityFilter] = useState<'all' | 'available' | 'unavailable'>('all')
+  const [editingStock, setEditingStock] = useState<Record<string, string>>({})
+  const [stockSaving, setStockSaving] = useState<Record<string, boolean>>({})
 
   const load = async () => {
     if (!supplier) return
@@ -52,6 +55,52 @@ export default function Products() {
       )
       toast.success(product.is_available ? 'Produto desativado' : 'Produto ativado')
     } catch {
+      toast.error('Erro ao atualizar')
+    }
+  }
+
+  const handleStockSave = async (product: Product) => {
+    const rawVal = editingStock[product.id]
+    if (rawVal === undefined) return
+    const newQty = parseFloat(rawVal)
+    if (isNaN(newQty) || newQty < 0) {
+      setEditingStock((p) => { const n = { ...p }; delete n[product.id]; return n })
+      toast.error('Valor inválido')
+      return
+    }
+    setStockSaving((p) => ({ ...p, [product.id]: true }))
+    try {
+      await apiClient.patch(`/products/${product.id}/stock`, { stock_quantity: newQty })
+      setProducts((prev) =>
+        prev.map((p) => (p.id === product.id ? { ...p, stock_quantity: newQty } : p))
+      )
+      toast.success('Estoque atualizado')
+    } catch {
+      toast.error('Erro ao atualizar estoque')
+    } finally {
+      setStockSaving((p) => { const n = { ...p }; delete n[product.id]; return n })
+      setEditingStock((p) => { const n = { ...p }; delete n[product.id]; return n })
+    }
+  }
+
+  const handleStockCancel = (product: Product) => {
+    setEditingStock((p) => { const n = { ...p }; delete n[product.id]; return n })
+  }
+
+  const handleToggleSellWithoutStock = async (product: Product) => {
+    const newVal = !product.sell_without_stock
+    // optimistic update
+    setProducts((prev) =>
+      prev.map((p) => (p.id === product.id ? { ...p, sell_without_stock: newVal } : p))
+    )
+    try {
+      await apiClient.patch(`/products/${product.id}/sell-without-stock`, { sell_without_stock: newVal })
+      toast.success(newVal ? 'Venda sem estoque ativada' : 'Venda sem estoque desativada')
+    } catch {
+      // revert
+      setProducts((prev) =>
+        prev.map((p) => (p.id === product.id ? { ...p, sell_without_stock: !newVal } : p))
+      )
       toast.error('Erro ao atualizar')
     }
   }
