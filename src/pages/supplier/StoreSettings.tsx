@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Camera, MessageCircle, LogOut, Plus, Pencil, Trash2, Lock } from 'lucide-react'
+import { Camera, MessageCircle, LogOut, Plus, Pencil, Trash2, Lock, ChevronDown } from 'lucide-react'
 import { toast } from 'sonner'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../stores/authStore'
@@ -68,6 +68,7 @@ export default function StoreSettings() {
     hours_end: '',
   })
   const [zoneSaving, setZoneSaving] = useState(false)
+  const [showRaList, setShowRaList] = useState(false)
   const [showPwModal, setShowPwModal] = useState(false)
   const [pwForm, setPwForm] = useState({ password: '', confirm: '' })
   const [pwSaving, setPwSaving] = useState(false)
@@ -315,7 +316,20 @@ export default function StoreSettings() {
         {/* Delivery Zones */}
         <div className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <p className="font-bold text-gray-700">Regiões de Entrega — DF</p>
+            <button
+              type="button"
+              onClick={() => setShowRaList((v) => !v)}
+              className="flex items-center gap-2 text-left flex-1"
+            >
+              <p className="font-bold text-gray-700">Regiões de Entrega — DF</p>
+              <span className="text-xs text-gray-400 font-normal">
+                {zones.filter((z) => DF_RAS.includes(z.city)).length}/{DF_RAS.length} configuradas
+              </span>
+              <ChevronDown
+                size={16}
+                className={`text-gray-400 transition-transform ${showRaList ? 'rotate-180' : ''}`}
+              />
+            </button>
             <button
               type="button"
               onClick={() => openAddZone()}
@@ -325,44 +339,49 @@ export default function StoreSettings() {
               Outra cidade
             </button>
           </div>
-          <p className="text-xs text-gray-400">Toque em uma região para configurar os dias e horários de entrega</p>
 
-          {zonesLoading ? (
-            <p className="text-sm text-gray-400 text-center py-2">Carregando...</p>
-          ) : (
-            <div className="space-y-2">
-              {DF_RAS.map((ra) => {
-                const zone = zones.find((z) => z.city === ra)
-                return zone ? (
-                  <div key={ra} className="flex items-center justify-between p-3 bg-primary/5 rounded-xl border border-primary/20">
-                    <div>
-                      <p className="font-semibold text-gray-800 text-sm">{ra} — DF</p>
-                      <p className="text-xs text-gray-500">
-                        {getDeliveryDaysLabel(zone.days)} · {zone.hours_start}–{zone.hours_end}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button type="button" onClick={() => openEditZone(zone)} className="p-1.5 text-gray-400 hover:text-primary">
-                        <Pencil size={14} />
+          {showRaList && (
+            <>
+              <p className="text-xs text-gray-400">Toque em uma região para configurar os dias e horários de entrega</p>
+
+              {zonesLoading ? (
+                <p className="text-sm text-gray-400 text-center py-2">Carregando...</p>
+              ) : (
+                <div className="space-y-2">
+                  {DF_RAS.map((ra) => {
+                    const zone = zones.find((z) => z.city === ra)
+                    return zone ? (
+                      <div key={ra} className="flex items-center justify-between p-3 bg-primary/5 rounded-xl border border-primary/20">
+                        <div>
+                          <p className="font-semibold text-gray-800 text-sm">{ra} — DF</p>
+                          <p className="text-xs text-gray-500">
+                            {getDeliveryDaysLabel(zone.days)} · {zone.hours_start}–{zone.hours_end}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button type="button" onClick={() => openEditZone(zone)} className="p-1.5 text-gray-400 hover:text-primary">
+                            <Pencil size={14} />
+                          </button>
+                          <button type="button" onClick={() => handleDeleteZone(zone.id)} className="p-1.5 text-gray-400 hover:text-danger">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        key={ra}
+                        type="button"
+                        onClick={() => openAddZone(ra)}
+                        className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                      >
+                        <p className="text-sm text-gray-500">{ra}</p>
+                        <Plus size={14} className="text-gray-300" />
                       </button>
-                      <button type="button" onClick={() => handleDeleteZone(zone.id)} className="p-1.5 text-gray-400 hover:text-danger">
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    key={ra}
-                    type="button"
-                    onClick={() => openAddZone(ra)}
-                    className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                  >
-                    <p className="text-sm text-gray-500">{ra}</p>
-                    <Plus size={14} className="text-gray-300" />
-                  </button>
-                )
-              })}
-            </div>
+                    )
+                  })}
+                </div>
+              )}
+            </>
           )}
         </div>
 
