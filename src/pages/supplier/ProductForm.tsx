@@ -38,6 +38,14 @@ const schema = z.object({
   stock_quantity: z.string().optional(),
   is_available: z.boolean(),
   is_featured: z.boolean(),
+}).superRefine((data, ctx) => {
+  if (data.sale_unit === 'kg' && !data.box_weight_kg?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Peso da caixa obrigatório',
+      path: ['box_weight_kg'],
+    })
+  }
 })
 
 type FormData = z.infer<typeof schema>
