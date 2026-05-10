@@ -7,11 +7,13 @@ import { requireAuth, requireAdmin, type AuthVariables } from './_lib/auth.js'
 
 export const config = { runtime: 'nodejs' }
 
-webpush.setVapidDetails(
-  'mailto:' + process.env.VAPID_EMAIL!,
-  process.env.VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!,
-)
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    'mailto:' + (process.env.VAPID_EMAIL ?? 'admin@example.com'),
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY,
+  )
+}
 
 const app = new Hono<{ Variables: AuthVariables }>().basePath('/api')
 

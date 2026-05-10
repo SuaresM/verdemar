@@ -27,7 +27,7 @@ const DAYS = [
 ]
 
 const DF_RAS = [
-  'Plano Piloto', 'Gama', 'Taguatinga', 'Brazlândia', 'Sobradinho',
+  'Asa Sul', 'Asa Norte', 'Gama', 'Taguatinga', 'Brazlândia', 'Sobradinho',
   'Planaltina', 'Paranoá', 'Núcleo Bandeirante', 'Ceilândia', 'Guará',
   'Cruzeiro', 'Samambaia', 'Santa Maria', 'São Sebastião', 'Recanto das Emas',
   'Lago Sul', 'Lago Norte', 'Candangolândia', 'Riacho Fundo', 'Águas Claras',
