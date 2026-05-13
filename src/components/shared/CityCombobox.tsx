@@ -66,7 +66,7 @@ export function CityCombobox({ value, onChange, placeholder = 'Digite a cidade..
         <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
           {filtered.map((c) => (
             <button
-              key={c.city}
+              key={`${c.city}-${c.state}`}
               type="button"
               onMouseDown={() => handleSelect(c.city, c.state)}
               className="w-full px-4 py-2 min-h-[44px] text-left text-sm hover:bg-gray-50 font-bold text-gray-800"
