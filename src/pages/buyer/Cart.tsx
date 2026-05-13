@@ -8,10 +8,8 @@ import { CartItemCard } from '../../components/cart/CartItem'
 import { EmptyState } from '../../components/shared/EmptyState'
 import { Header } from '../../components/layout/Header'
 import { formatCurrency, formatWhatsAppMessage } from '../../utils'
-import { createOrder } from '../../services/supabase'
-import { getDeliveryZonesBySupplier } from '../../services/supabase'
+import { createOrder, getDeliveryZonesBySupplier, markOrderWhatsAppSent } from '../../services/supabase'
 import type { CartSection, DeliveryZone } from '../../types'
-import { apiClient } from '../../lib/apiClient'
 
 const DAY_LABELS: Record<string, string> = {
   monday: 'Segunda',
@@ -458,9 +456,8 @@ export default function Cart() {
               onClick={() => {
                 setWhatsappOpened(true)
                 if (checkoutSuccess) {
-                  apiClient.patch(`/orders/${checkoutSuccess.orderId}/whatsapp-sent`, {}).catch(() => {})
+                  markOrderWhatsAppSent(checkoutSuccess.orderId).catch(() => {})
                 }
-                setCheckoutSuccess(null)
               }}
               className="flex items-center justify-center gap-3 w-full bg-green-500 text-white font-bold py-4 rounded-2xl text-base shadow-lg active:scale-95 transition-transform"
             >
