@@ -46,8 +46,10 @@ export function CityCombobox({ value, onChange, placeholder = 'Digite a cidade..
           if (strict) {
             const isValid = CITIES.some((c) => c.city === query)
             if (!isValid) {
+              const fallbackCity = CITIES.find((c) => c.city === lastValidCity.current)
               setQuery(lastValidCity.current)
               setInternalError('Selecione uma cidade da lista')
+              if (fallbackCity) onChange(fallbackCity.city, fallbackCity.state)
             } else {
               setInternalError('')
             }
