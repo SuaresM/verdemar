@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { CITIES } from '../../constants/cities'
 
 interface CityComboboxProps {
@@ -6,14 +6,18 @@ interface CityComboboxProps {
   onChange: (city: string, state: string) => void
   placeholder?: string
   error?: string
+  strict?: boolean
 }
 
-export function CityCombobox({ value, onChange, placeholder = 'Digite a cidade...', error }: CityComboboxProps) {
+export function CityCombobox({ value, onChange, placeholder = 'Digite a cidade...', error, strict = false }: CityComboboxProps) {
   const [query, setQuery] = useState(value)
   const [open, setOpen] = useState(false)
+  const lastValidCity = useRef<string>(value)
+  const [internalError, setInternalError] = useState<string>('')
 
   useEffect(() => {
     setQuery(value)
+    lastValidCity.current = value
   }, [value])
 
   const filtered = query
@@ -21,7 +25,9 @@ export function CityCombobox({ value, onChange, placeholder = 'Digite a cidade..
     : CITIES.slice(0, 8)
 
   const handleSelect = (city: string, state: string) => {
+    lastValidCity.current = city
     setQuery(city)
+    setInternalError('')
     onChange(city, state)
     setOpen(false)
   }
@@ -35,12 +41,25 @@ export function CityCombobox({ value, onChange, placeholder = 'Digite a cidade..
           setOpen(true)
         }}
         onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onBlur={() => setTimeout(() => {
+          setOpen(false)
+          if (strict) {
+            const isValid = CITIES.some((c) => c.city === query)
+            if (!isValid) {
+              setQuery(lastValidCity.current)
+              setInternalError('Selecione uma cidade da lista')
+            } else {
+              setInternalError('')
+            }
+          }
+        }, 150)}
         placeholder={placeholder}
         autoComplete="off"
         className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
       />
-      {error && <p className="text-danger text-xs mt-1">{error}</p>}
+      {(internalError || error) && (
+        <p className="text-danger text-xs mt-1">{internalError || error}</p>
+      )}
       {open && filtered.length > 0 && (
         <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
           {filtered.map((c) => (
@@ -48,7 +67,7 @@ export function CityCombobox({ value, onChange, placeholder = 'Digite a cidade..
               key={c.city}
               type="button"
               onMouseDown={() => handleSelect(c.city, c.state)}
-              className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 font-medium text-gray-800"
+              className="w-full px-4 py-2 min-h-[44px] text-left text-sm hover:bg-gray-50 font-bold text-gray-800"
             >
               {c.city} <span className="text-gray-400 text-xs">— {c.state}</span>
             </button>
