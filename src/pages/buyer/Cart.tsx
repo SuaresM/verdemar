@@ -13,6 +13,17 @@ import { getDeliveryZonesBySupplier } from '../../services/supabase'
 import type { CartSection, DeliveryZone } from '../../types'
 import { apiClient } from '../../lib/apiClient'
 
+const DAY_LABELS: Record<string, string> = {
+  monday: 'Segunda',
+  tuesday: 'Terça',
+  wednesday: 'Quarta',
+  thursday: 'Quinta',
+  friday: 'Sexta',
+  saturday: 'Sábado',
+  sunday: 'Domingo',
+}
+const DAY_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+
 function SectionMinOrderStatus({ section }: { section: CartSection }) {
   const minValue = section.supplier.min_order_value
   const minQty = section.supplier.min_order_quantity
@@ -156,6 +167,7 @@ export default function Cart() {
   const [checkoutSuccess, setCheckoutSuccess] = useState<{ whatsappUrl: string; supplierName: string; orderId: string } | null>(null)
   const [whatsappOpened, setWhatsappOpened] = useState(false)
   const [supplierZones, setSupplierZones] = useState<Record<string, DeliveryZone[]>>({})
+  const [selectedZoneId, setSelectedZoneId] = useState<Record<string, string>>({})
 
   const totalAll = sections.reduce((sum, s) => sum + s.sectionTotal, 0)
 
@@ -174,6 +186,16 @@ export default function Cart() {
 
   const toggleSection = (id: string) => {
     setExpandedSections((prev) => ({ ...prev, [id]: !prev[id] }))
+  }
+
+  const handleZoneChange = (supplierId: string, zoneId: string) => {
+    setSelectedZoneId((prev) => ({ ...prev, [supplierId]: zoneId }))
+    updateDeliveryTime(supplierId, '')
+  }
+
+  const handleDayChange = (supplierId: string, day: string, zone: DeliveryZone) => {
+    const label = `${DAY_LABELS[day] ?? day} — ${zone.hours_start} às ${zone.hours_end}`
+    updateDeliveryTime(supplierId, label)
   }
 
   const handleCheckout = async () => {
@@ -262,6 +284,9 @@ export default function Cart() {
         {sections.map((section) => {
           const isExpanded = expandedSections[section.supplier.id] ?? true
           const isValid = isSectionValid(section)
+          const zones = supplierZones[section.supplier.id]
+          const hasNoZones = zones !== undefined && zones.length === 0
+          const activeZone = zones?.find((z) => z.id === selectedZoneId[section.supplier.id])
 
           return (
             <div key={section.supplier.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
