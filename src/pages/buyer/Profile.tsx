@@ -11,7 +11,7 @@ import { supabase } from '../../lib/supabaseClient'
 import { CityCombobox } from '../../components/shared/CityCombobox'
 
 export default function Profile() {
-  const { buyer, profile, signOut } = useAuthStore()
+  const { buyer, profile, signOut, setBuyer } = useAuthStore()
   const navigate = useNavigate()
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -42,6 +42,7 @@ export default function Profile() {
     setSaving(true)
     try {
       await updateBuyer(buyer.id, form)
+      setBuyer({ ...buyer, ...form })
       toast.success('Dados atualizados!')
       setEditing(false)
     } catch {
