@@ -20,7 +20,7 @@ tech-stack:
   added: []
   patterns:
     - "Multi-line union type with inline comments for v1.1 additions"
-    - "Optional fields with ?:  for backward-compat JSONB and nullable columns"
+    - "Optional fields with ?: for backward-compat JSONB and nullable columns"
 
 key-files:
   created: []
@@ -90,6 +90,13 @@ None - no external service configuration required.
 - `src/types/index.ts` now exports all types needed by the API handler (Plan 01-03) and service layer (Plan 01-04)
 - The `OrderStatus` union correctly covers all statuses in the state machine defined in PATTERNS.md
 - No blockers for downstream plans in this wave
+
+## Self-Check: PASSED
+- FOUND: src/types/index.ts
+- FOUND: 01-02-SUMMARY.md
+- FOUND commit: bde2bd7
+- All 6 acceptance criteria grep checks passed
+- TypeScript compiles with no errors
 
 ---
 *Phase: 01-schema-api-backbone*
