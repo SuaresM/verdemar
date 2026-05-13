@@ -78,37 +78,35 @@
 
 ## Traceability
 
-*(Preenchido pelo roadmapper)*
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| API-01 | — | Pending |
-| API-02 | — | Pending |
-| API-03 | — | Pending |
-| CONF-01 | — | Pending |
-| CONF-02 | — | Pending |
-| CONF-03 | — | Pending |
-| CONF-04 | — | Pending |
-| SUPP-01 | — | Pending |
-| SUPP-02 | — | Pending |
-| SUPP-03 | — | Pending |
-| SUPP-04 | — | Pending |
-| SUPP-05 | — | Pending |
-| TRACK-01 | — | Pending |
-| TRACK-02 | — | Pending |
-| TRACK-03 | — | Pending |
-| TRACK-04 | — | Pending |
-| PUSH-01 | — | Pending |
-| PUSH-02 | — | Pending |
-| HIST-01 | — | Pending |
-| HIST-02 | — | Pending |
-| HIST-03 | — | Pending |
+| API-01 | Phase 01 | Pending |
+| API-02 | Phase 01 | Pending |
+| API-03 | Phase 01 | Pending |
+| CONF-01 | Phase 03 | Pending |
+| CONF-02 | Phase 03 | Pending |
+| CONF-03 | Phase 03 | Pending |
+| CONF-04 | Phase 03 | Pending |
+| SUPP-01 | Phase 02 | Pending |
+| SUPP-02 | Phase 02 | Pending |
+| SUPP-03 | Phase 02 | Pending |
+| SUPP-04 | Phase 02 | Pending |
+| SUPP-05 | Phase 02 | Pending |
+| TRACK-01 | Phase 03 | Pending |
+| TRACK-02 | Phase 03 | Pending |
+| TRACK-03 | Phase 03 | Pending |
+| TRACK-04 | Phase 03 | Pending |
+| PUSH-01 | Phase 02 | Pending |
+| PUSH-02 | Phase 03 | Pending |
+| HIST-01 | Phase 04 | Pending |
+| HIST-02 | Phase 04 | Pending |
+| HIST-03 | Phase 04 | Pending |
 
 **Coverage:**
 - v1.1 requirements: 21 total
-- Mapped to phases: 0 (roadmap pending)
-- Unmapped: 21 ⚠️
+- Mapped to phases: 21
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-05-13*
-*Last updated: 2026-05-13 after initial definition*
+*Last updated: 2026-05-13 — Roadmap created, traceability filled*
