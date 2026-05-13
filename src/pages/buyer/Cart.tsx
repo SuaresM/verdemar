@@ -403,7 +403,7 @@ export default function Cart() {
                   {/* Checkout button */}
                   <button
                     onClick={() => setCheckoutSection(section)}
-                    disabled={!isValid || hasNoZones || !section.deliveryTimePreference}
+                    disabled={!isValid || zones === undefined || hasNoZones || !section.deliveryTimePreference}
                     className="w-full bg-primary text-white font-bold py-3 rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed text-sm"
                   >
                     {getCheckoutLabel(section)}
