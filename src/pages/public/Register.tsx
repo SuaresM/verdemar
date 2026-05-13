@@ -280,6 +280,7 @@ export default function Register() {
                   Cidade <span className="text-danger">*</span>
                 </label>
                 <CityCombobox
+                  strict
                   value={buyerForm.watch('address_city') || ''}
                   onChange={(city, state) => {
                     buyerForm.setValue('address_city', city, { shouldValidate: true })
