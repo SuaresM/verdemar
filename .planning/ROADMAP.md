@@ -42,8 +42,8 @@ Plans:
 - Wave 2:
   - [x] 01-03-PLAN.md — [BLOCKING] Apply migration to live Supabase project mdwifcuaekjboukvsnvg (depends: 01-01)
 - Wave 3 (parallel, depends: 01-02 + 01-03):
-  - [ ] 01-04-PLAN.md — Rewrite PATCH /orders/:id/status with auth + state machine + push; fix sendPush multi-device; add idempotency to POST /orders
-  - [ ] 01-05-PLAN.md — Add getOrderById() and update updateOrderStatus() signature in services
+  - [x] 01-04-PLAN.md — Rewrite PATCH /orders/:id/status with auth + state machine + push; fix sendPush multi-device; add idempotency to POST /orders
+  - [x] 01-05-PLAN.md — Add getOrderById() and update updateOrderStatus() signature in services
 
 ---
 

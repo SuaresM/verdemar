@@ -15,8 +15,8 @@ updated: 2026-05-13
 
 Phase: 01 — Schema + API Backbone (executing)
 Plan: 5 plans in 3 waves
-Status: Wave 2 complete, ready for wave 3 (01-04 + 01-05)
-Last activity: 2026-05-13 — 01-03 migration applied to live Supabase DB; all 6 acceptance criteria passed
+Status: All waves complete, verifying phase goal
+Last activity: 2026-05-13 — Wave 3 complete (01-04 API rewrite, 01-05 service layer)
 
 ## Project Reference
 
