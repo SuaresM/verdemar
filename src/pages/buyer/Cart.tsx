@@ -168,6 +168,7 @@ export default function Cart() {
   const [whatsappOpened, setWhatsappOpened] = useState(false)
   const [supplierZones, setSupplierZones] = useState<Record<string, DeliveryZone[]>>({})
   const [selectedZoneId, setSelectedZoneId] = useState<Record<string, string>>({})
+  const [selectedDayId, setSelectedDayId] = useState<Record<string, string>>({})
 
   const totalAll = sections.reduce((sum, s) => sum + s.sectionTotal, 0)
 
@@ -190,10 +191,12 @@ export default function Cart() {
 
   const handleZoneChange = (supplierId: string, zoneId: string) => {
     setSelectedZoneId((prev) => ({ ...prev, [supplierId]: zoneId }))
+    setSelectedDayId((prev) => { const n = { ...prev }; delete n[supplierId]; return n })
     updateDeliveryTime(supplierId, '')
   }
 
   const handleDayChange = (supplierId: string, day: string, zone: DeliveryZone) => {
+    setSelectedDayId((prev) => ({ ...prev, [supplierId]: day }))
     const label = `${DAY_LABELS[day] ?? day} — ${zone.hours_start} às ${zone.hours_end}`
     updateDeliveryTime(supplierId, label)
   }
@@ -376,7 +379,7 @@ export default function Cart() {
                         {/* Step 2 — day picker (only after zone selected) */}
                         {activeZone && (
                           <select
-                            value=""
+                            value={selectedDayId[section.supplier.id] ?? ''}
                             onChange={(e) => handleDayChange(section.supplier.id, e.target.value, activeZone)}
                             className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none"
                           >
@@ -388,12 +391,6 @@ export default function Cart() {
                                 <option key={d} value={d}>{DAY_LABELS[d] ?? d}</option>
                               ))}
                           </select>
-                        )}
-
-                        {section.deliveryTimePreference && (
-                          <p className="text-xs text-gray-500">
-                            Selecionado: <span className="font-semibold text-gray-700">{section.deliveryTimePreference}</span>
-                          </p>
                         )}
                       </div>
                     ) : (
