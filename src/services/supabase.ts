@@ -231,8 +231,15 @@ export async function getOrdersBySupplier(supplierId: string, limit = 100): Prom
   return data
 }
 
-export async function updateOrderStatus(orderId: string, status: string) {
-  await apiClient.patch(`/orders/${orderId}/status`, { status })
+export async function updateOrderStatus(
+  orderId: string,
+  status: string,
+  rejectionReason?: string
+): Promise<void> {
+  await apiClient.patch(`/orders/${orderId}/status`, {
+    status,
+    ...(rejectionReason ? { reason: rejectionReason } : {}),
+  })
 }
 
 export async function markOrderWhatsAppSent(orderId: string): Promise<void> {
@@ -247,6 +254,16 @@ export async function updateOrderItemsAndTotal(
     items: updatedItems,
   })
   return newTotal
+}
+
+export async function getOrderById(orderId: string): Promise<Order | null> {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*, supplier:suppliers(*), buyer:buyers(*), items:order_items(*)')
+    .eq('id', orderId)
+    .single()
+  if (error) return null
+  return data as Order
 }
 
 // ---- ADMIN ----
