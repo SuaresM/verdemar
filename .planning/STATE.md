@@ -2,21 +2,21 @@
 milestone: v1.1
 name: Fluxo de Pedidos
 status: planning
-phase: 0
+phase: 1
 progress:
   phases_complete: 0
   phases_total: 4
   tasks_complete: 0
-  tasks_total: 0
+  tasks_total: 5
 updated: 2026-05-13
 ---
 
 ## Current Position
 
-Phase: Not started (roadmap defined, ready for Phase 01 planning)
-Plan: —
-Status: Roadmap created
-Last activity: 2026-05-13 — Roadmap created (4 phases, 21 requirements mapped)
+Phase: 01 — Schema + API Backbone (planned, ready to execute)
+Plan: 5 plans in 3 waves
+Status: Phase 01 planned ✓
+Last activity: 2026-05-13 — Phase 01 plans created (5 plans, 3 waves)
 
 ## Project Reference
 
