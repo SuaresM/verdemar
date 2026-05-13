@@ -37,8 +37,8 @@
 
 Plans:
 - Wave 1 (parallel):
-  - [ ] 01-01-PLAN.md — Write Supabase migration SQL (rejection_reason, status_history, idempotency_key, status CHECK, push_subscriptions composite key)
-  - [ ] 01-02-PLAN.md — Update TypeScript types (OrderStatus union, StatusHistoryEntry interface, Order interface extensions)
+  - [x] 01-01-PLAN.md — Write Supabase migration SQL (rejection_reason, status_history, idempotency_key, status CHECK, push_subscriptions composite key)
+  - [x] 01-02-PLAN.md — Update TypeScript types (OrderStatus union, StatusHistoryEntry interface, Order interface extensions)
 - Wave 2:
   - [ ] 01-03-PLAN.md — [BLOCKING] Apply migration to live Supabase project mdwifcuaekjboukvsnvg (depends: 01-01)
 - Wave 3 (parallel, depends: 01-02 + 01-03):

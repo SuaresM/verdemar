@@ -1,7 +1,7 @@
 ---
 milestone: v1.1
 name: Fluxo de Pedidos
-status: planning
+status: executing
 phase: 1
 progress:
   phases_complete: 0
@@ -13,10 +13,10 @@ updated: 2026-05-13
 
 ## Current Position
 
-Phase: 01 — Schema + API Backbone (planned, ready to execute)
+Phase: 01 — Schema + API Backbone (executing)
 Plan: 5 plans in 3 waves
-Status: Phase 01 planned ✓
-Last activity: 2026-05-13 — Phase 01 plans created (5 plans, 3 waves)
+Status: Wave 1 complete, executing wave 2
+Last activity: 2026-05-13 — Wave 1 complete (01-01 migration SQL, 01-02 TS types)
 
 ## Project Reference
 
