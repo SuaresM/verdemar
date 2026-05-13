@@ -343,22 +343,70 @@ export default function Cart() {
                     />
                   </div>
 
-                  {/* Delivery time */}
+                  {/* Delivery time — 2-step zone + day picker */}
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 mb-1">Horário preferencial de entrega</label>
-                    <input
-                      type="text"
-                      value={section.deliveryTimePreference}
-                      onChange={(e) => updateDeliveryTime(section.supplier.id, e.target.value)}
-                      placeholder="Ex: 07h-09h"
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    />
+                    {hasNoZones ? (
+                      <p className="text-xs text-danger font-semibold">
+                        Fornecedor ainda não configurou horários de entrega
+                      </p>
+                    ) : zones ? (
+                      <div className="space-y-2">
+                        {/* Step 1 — zone picker */}
+                        <select
+                          value={selectedZoneId[section.supplier.id] ?? ''}
+                          onChange={(e) => handleZoneChange(section.supplier.id, e.target.value)}
+                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none"
+                        >
+                          <option value="">Selecione a janela de entrega</option>
+                          {zones.map((z) => {
+                            const days = (z.days ?? [])
+                              .slice()
+                              .sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b))
+                              .map((d) => DAY_LABELS[d]?.slice(0, 3) ?? d)
+                              .join(', ')
+                            return (
+                              <option key={z.id} value={z.id}>
+                                {days} — {z.hours_start} às {z.hours_end}
+                              </option>
+                            )
+                          })}
+                        </select>
+
+                        {/* Step 2 — day picker (only after zone selected) */}
+                        {activeZone && (
+                          <select
+                            value=""
+                            onChange={(e) => handleDayChange(section.supplier.id, e.target.value, activeZone)}
+                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none"
+                          >
+                            <option value="">Selecione o dia</option>
+                            {(activeZone.days ?? [])
+                              .slice()
+                              .sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b))
+                              .map((d) => (
+                                <option key={d} value={d}>{DAY_LABELS[d] ?? d}</option>
+                              ))}
+                          </select>
+                        )}
+
+                        {section.deliveryTimePreference && (
+                          <p className="text-xs text-gray-500">
+                            Selecionado: <span className="font-semibold text-gray-700">{section.deliveryTimePreference}</span>
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <select disabled className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl opacity-50">
+                        <option>Carregando...</option>
+                      </select>
+                    )}
                   </div>
 
                   {/* Checkout button */}
                   <button
                     onClick={() => setCheckoutSection(section)}
-                    disabled={!isValid}
+                    disabled={!isValid || hasNoZones || !section.deliveryTimePreference}
                     className="w-full bg-primary text-white font-bold py-3 rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed text-sm"
                   >
                     {getCheckoutLabel(section)}
