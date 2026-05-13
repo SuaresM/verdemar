@@ -8,6 +8,7 @@ import { Header } from '../../components/layout/Header'
 import { openSupportWhatsApp } from '../../services/whatsapp'
 import { formatCNPJ, formatPhone } from '../../utils'
 import { supabase } from '../../lib/supabaseClient'
+import { CityCombobox } from '../../components/shared/CityCombobox'
 
 export default function Profile() {
   const { buyer, profile, signOut } = useAuthStore()
@@ -172,9 +173,21 @@ export default function Profile() {
                 <Input label="Complemento" field="address_complement" />
               </div>
               <Input label="Bairro" field="address_neighborhood" />
-              <div className="grid grid-cols-2 gap-2">
-                <Input label="Cidade" field="address_city" />
-                <Input label="Estado" field="address_state" />
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Cidade</label>
+                <CityCombobox
+                  strict
+                  value={form.address_city}
+                  onChange={(city, state) => setForm((prev) => ({ ...prev, address_city: city, address_state: state }))}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Estado</label>
+                <input
+                  value={form.address_state}
+                  readOnly
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl bg-gray-50 text-gray-500 focus:outline-none"
+                />
               </div>
             </div>
           ) : (
