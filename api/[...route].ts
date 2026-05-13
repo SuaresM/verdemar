@@ -65,14 +65,74 @@ app.post('/orders', requireAuth, async (c) => {
 })
 
 app.patch('/orders/:id/status', requireAuth, async (c) => {
+  const userId = c.get('userId')
   const orderId = c.req.param('id')
-  const { status } = await c.req.json<{ status: string }>()
+  const { status: newStatus, reason } = await c.req.json<{ status: string; reason?: string }>()
 
+  // 1. Validate newStatus is a known value
+  const VALID_STATUSES = ['pending', 'confirmed', 'rejected', 'in_route', 'delivered', 'cancelled']
+  if (!VALID_STATUSES.includes(newStatus)) {
+    return c.json({ error: 'Status inválido' }, 400)
+  }
+
+  // 2. Fetch current order — need status, buyer_id, supplier_id, status_history
+  const { data: order } = await adminSupabase
+    .from('orders')
+    .select('status, buyer_id, supplier_id, status_history')
+    .eq('id', orderId)
+    .single()
+  if (!order) return c.json({ error: 'Pedido não encontrado' }, 404)
+
+  // 3. Establish actor role
+  const isBuyer    = order.buyer_id    === userId
+  const isSupplier = order.supplier_id === userId
+  if (!isBuyer && !isSupplier) return c.json({ error: 'Proibido' }, 403)
+
+  // 4. State-machine transition table
+  const ALLOWED: Record<string, { actor: 'buyer' | 'supplier'; from: string[] }> = {
+    cancelled: { actor: 'buyer',    from: ['pending'] },
+    confirmed: { actor: 'supplier', from: ['pending'] },
+    rejected:  { actor: 'supplier', from: ['pending'] },
+    in_route:  { actor: 'supplier', from: ['confirmed'] },
+    delivered: { actor: 'supplier', from: ['in_route'] },
+  }
+
+  const rule = ALLOWED[newStatus]
+  if (!rule) return c.json({ error: 'Transição de status não permitida' }, 422)
+  if (rule.actor === 'buyer'    && !isBuyer)    return c.json({ error: 'Proibido' }, 403)
+  if (rule.actor === 'supplier' && !isSupplier) return c.json({ error: 'Proibido' }, 403)
+  if (!rule.from.includes(order.status)) {
+    return c.json({
+      error: `Não é possível passar de '${order.status}' para '${newStatus}'`
+    }, 422)
+  }
+
+  // 5. Rejection requires a reason
+  if (newStatus === 'rejected' && !reason?.trim()) {
+    return c.json({ error: 'Motivo de recusa obrigatório' }, 400)
+  }
+
+  // 6. Build update payload — append to status_history (read from fetched row)
+  const currentHistory: Array<{ status: string; at: string }> =
+    Array.isArray(order.status_history) ? order.status_history : []
+  const newEntry = { status: newStatus, at: new Date().toISOString() }
+
+  const updatePayload: Record<string, unknown> = {
+    status: newStatus,
+    updated_at: new Date().toISOString(),
+    status_history: [...currentHistory, newEntry],
+  }
+  if (newStatus === 'rejected') updatePayload.rejection_reason = reason
+
+  // 7. Apply update
   const { error } = await adminSupabase
     .from('orders')
-    .update({ status, updated_at: new Date().toISOString() })
+    .update(updatePayload)
     .eq('id', orderId)
   if (error) return c.json({ error: error.message }, 400)
+
+  // 8. Fire push to buyer (non-blocking — never fail the response over push)
+  sendPushToBuyer(orderId, newStatus).catch(() => {})
 
   return c.json({ ok: true })
 })
