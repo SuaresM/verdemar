@@ -40,7 +40,7 @@ Plans:
   - [x] 01-01-PLAN.md — Write Supabase migration SQL (rejection_reason, status_history, idempotency_key, status CHECK, push_subscriptions composite key)
   - [x] 01-02-PLAN.md — Update TypeScript types (OrderStatus union, StatusHistoryEntry interface, Order interface extensions)
 - Wave 2:
-  - [ ] 01-03-PLAN.md — [BLOCKING] Apply migration to live Supabase project mdwifcuaekjboukvsnvg (depends: 01-01)
+  - [x] 01-03-PLAN.md — [BLOCKING] Apply migration to live Supabase project mdwifcuaekjboukvsnvg (depends: 01-01)
 - Wave 3 (parallel, depends: 01-02 + 01-03):
   - [ ] 01-04-PLAN.md — Rewrite PATCH /orders/:id/status with auth + state machine + push; fix sendPush multi-device; add idempotency to POST /orders
   - [ ] 01-05-PLAN.md — Add getOrderById() and update updateOrderStatus() signature in services
@@ -167,7 +167,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 01. Schema + API Backbone | 0/5 | Planned ✓ | - |
+| 01. Schema + API Backbone | 3/5 | Executing | - |
 | 02. Supplier Order Flow | 0/? | Not started | - |
 | 03. Buyer Order Detail + Confirmation Upgrade | 0/? | Not started | - |
 | 04. Order History + Filters | 0/? | Not started | - |
