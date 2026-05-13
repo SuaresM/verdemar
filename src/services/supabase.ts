@@ -235,6 +235,10 @@ export async function updateOrderStatus(orderId: string, status: string) {
   await apiClient.patch(`/orders/${orderId}/status`, { status })
 }
 
+export async function markOrderWhatsAppSent(orderId: string): Promise<void> {
+  await apiClient.patch(`/orders/${orderId}/whatsapp-sent`, {})
+}
+
 export async function updateOrderItemsAndTotal(
   orderId: string,
   updatedItems: Array<{ id: string; quantity: number; subtotal: number }>
