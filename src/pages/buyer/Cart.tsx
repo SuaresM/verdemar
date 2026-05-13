@@ -176,7 +176,9 @@ export default function Cart() {
     if (sections.length === 0) return
     Promise.all(
       sections.map((s) =>
-        getDeliveryZonesBySupplier(s.supplier.id).then((zones) => ({ id: s.supplier.id, zones }))
+        getDeliveryZonesBySupplier(s.supplier.id)
+          .then((zones) => ({ id: s.supplier.id, zones }))
+          .catch(() => ({ id: s.supplier.id, zones: [] as DeliveryZone[] }))
       )
     ).then((results) => {
       const map: Record<string, DeliveryZone[]> = {}
