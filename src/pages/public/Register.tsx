@@ -318,9 +318,27 @@ export default function Register() {
               <p className="font-bold text-gray-700 text-sm uppercase tracking-wide">Loja</p>
               <InputField label="Nome da Loja" required placeholder="Hortifrúti do João" error={supplierForm.formState.errors.store_name?.message} {...supplierForm.register('store_name')} />
               <InputField label="WhatsApp" required placeholder="(11) 99999-9999" error={supplierForm.formState.errors.whatsapp?.message} {...supplierForm.register('whatsapp')} />
-              <div className="grid grid-cols-2 gap-3">
-                <InputField label="Cidade" required placeholder="São Paulo" error={supplierForm.formState.errors.address_city?.message} {...supplierForm.register('address_city')} />
-                <InputField label="Estado" required placeholder="SP" error={supplierForm.formState.errors.address_state?.message} {...supplierForm.register('address_state')} />
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Cidade <span className="text-danger">*</span>
+                </label>
+                <CityCombobox
+                  strict
+                  value={supplierForm.watch('address_city') || ''}
+                  onChange={(city, state) => {
+                    supplierForm.setValue('address_city', city, { shouldValidate: true })
+                    supplierForm.setValue('address_state', state, { shouldValidate: true })
+                  }}
+                  error={supplierForm.formState.errors.address_city?.message}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Estado</label>
+                <input
+                  value={supplierForm.watch('address_state') || ''}
+                  readOnly
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-gray-50 text-gray-500 focus:outline-none"
+                />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Descrição</label>
