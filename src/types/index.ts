@@ -1,6 +1,13 @@
 export type UserRole = 'buyer' | 'supplier' | 'admin'
 export type SaleUnit = 'box' | 'kg' | 'unit'
-export type OrderStatus = 'pending' | 'confirmed' | 'in_delivery' | 'delivered' | 'cancelled'
+export type OrderStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'in_route'       // v1.1: replaces in_delivery in CHECK constraint
+  | 'in_delivery'    // legacy: kept for backward compat with rows created before migration
+  | 'delivered'
+  | 'cancelled'
+  | 'rejected'       // v1.1: supplier refusal terminal state
 export type ProductCategory = 'fruit' | 'vegetable' | 'greens' | 'other'
 
 export interface Profile {
@@ -83,6 +90,11 @@ export interface OrderItem {
   product?: Product
 }
 
+export interface StatusHistoryEntry {
+  status: OrderStatus
+  at: string   // ISO 8601 timestamp — e.g. "2026-05-13T10:00:00Z"
+}
+
 export interface Order {
   id: string
   buyer_id: string
@@ -95,6 +107,10 @@ export interface Order {
   whatsapp_sent: boolean
   created_at?: string
   updated_at?: string
+  // v1.1 additions (Phase 01 migration):
+  rejection_reason?: string           // populated when status === 'rejected'
+  status_history?: StatusHistoryEntry[] // JSONB array; may be empty on old rows
+  idempotency_key?: string            // client-generated UUID; used for dedup
   items?: OrderItem[]
   supplier?: Supplier
   buyer?: Buyer
