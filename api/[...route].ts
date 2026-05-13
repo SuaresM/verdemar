@@ -23,13 +23,25 @@ app.use('*', cors())
 
 app.post('/orders', requireAuth, async (c) => {
   const userId = c.get('userId')
-  const { order, items } = await c.req.json<{ order: Record<string, unknown>; items: Record<string, unknown>[] }>()
+  const { order, items, idempotency_key } = await c.req.json<{
+    order: Record<string, unknown>
+    items: Record<string, unknown>[]
+    idempotency_key?: string
+  }>()
 
   if (order.buyer_id !== userId) return c.json({ error: 'Forbidden' }, 403)
 
+  // idempotent upsert — duplicate idempotency_key returns existing row
+  const orderPayload = idempotency_key
+    ? { ...order, idempotency_key }
+    : order
+
   const { data: orderData, error: orderError } = await adminSupabase
     .from('orders')
-    .insert(order)
+    .upsert(orderPayload, {
+      onConflict: 'idempotency_key',
+      ignoreDuplicates: false,
+    })
     .select()
     .single()
   if (orderError) return c.json({ error: orderError.message }, 400)
@@ -59,7 +71,11 @@ app.post('/orders', requireAuth, async (c) => {
     p_amount: orderData.total_value as number,
   })).catch(() => {})
 
-  sendPush(order.supplier_id as string, orderData.id as string).catch(() => {})
+  sendPush(order.supplier_id as string, {
+    title: 'Novo pedido recebido!',
+    body: `Pedido #${(orderData.id as string).slice(0, 8).toUpperCase()} aguardando confirmação.`,
+    url: '/supplier/orders',
+  }).catch(() => {})
 
   return c.json(orderData, 201)
 })
@@ -231,9 +247,13 @@ app.post('/push/subscribe', requireAuth, async (c) => {
   const userId = c.get('userId')
   const { subscription } = await c.req.json<{ subscription: webpush.PushSubscription }>()
 
+  const endpoint = (subscription as { endpoint?: string }).endpoint ?? ''
   const { error } = await adminSupabase
     .from('push_subscriptions')
-    .upsert({ user_id: userId, subscription }, { onConflict: 'user_id' })
+    .upsert(
+      { user_id: userId, endpoint, subscription },
+      { onConflict: 'user_id,endpoint' }
+    )
   if (error) return c.json({ error: error.message }, 400)
 
   return c.json({ ok: true })
@@ -366,22 +386,52 @@ app.delete('/admin/suppliers/:id', requireAuth, requireAdmin, async (c) => {
 
 // ── INTERNAL ─────────────────────────────────────────────────────────────────
 
-async function sendPush(supplierId: string, orderId: string) {
-  const { data, error } = await adminSupabase
+async function sendPush(userId: string, payload: object): Promise<void> {
+  const { data } = await adminSupabase
     .from('push_subscriptions')
-    .select('subscription')
-    .eq('user_id', supplierId)
-    .single()
-  if (error || !data) return
+    .select('id, subscription')
+    .eq('user_id', userId)
 
-  await webpush.sendNotification(
-    data.subscription as webpush.PushSubscription,
-    JSON.stringify({
-      title: 'Novo pedido recebido!',
-      body: `Pedido #${orderId.slice(0, 8).toUpperCase()} aguardando confirmação.`,
-      url: '/supplier/orders',
-    }),
-  )
+  for (const row of data ?? []) {
+    try {
+      await webpush.sendNotification(
+        row.subscription as webpush.PushSubscription,
+        JSON.stringify(payload)
+      )
+    } catch (err: unknown) {
+      const pushErr = err as { statusCode?: number }
+      if (pushErr?.statusCode === 410 || pushErr?.statusCode === 404) {
+        // Subscription expired or revoked — purge the stale row
+        await adminSupabase
+          .from('push_subscriptions')
+          .delete()
+          .eq('id', row.id)
+      }
+    }
+  }
+}
+
+async function sendPushToBuyer(orderId: string, newStatus: string): Promise<void> {
+  const { data: order } = await adminSupabase
+    .from('orders')
+    .select('buyer_id')
+    .eq('id', orderId)
+    .single()
+  if (!order?.buyer_id) return
+
+  const statusLabels: Record<string, string> = {
+    confirmed: 'Pedido confirmado pelo fornecedor!',
+    in_route:  'Seu pedido saiu para entrega.',
+    delivered: 'Pedido entregue. Bom apetite!',
+    rejected:  'Pedido recusado pelo fornecedor.',
+    cancelled: 'Pedido cancelado.',
+  }
+
+  await sendPush(order.buyer_id, {
+    title: statusLabels[newStatus] ?? 'Atualização no seu pedido',
+    body:  `Pedido #${orderId.slice(0, 8).toUpperCase()}`,
+    url:   `/orders/${orderId}`,
+  })
 }
 
 export default handle(app)
