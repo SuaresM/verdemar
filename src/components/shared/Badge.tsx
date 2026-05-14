@@ -34,9 +34,11 @@ export function OrderStatusBadge({ status }: { status: OrderStatus }) {
   const config: Record<OrderStatus, { label: string; variant: BadgeProps['variant'] }> = {
     pending: { label: 'Aguardando', variant: 'warning' },
     confirmed: { label: 'Confirmado', variant: 'info' },
-    in_delivery: { label: 'Em Rota', variant: 'primary' },
+    in_route: { label: 'Em Rota', variant: 'primary' },
+    in_delivery: { label: 'Em Entrega', variant: 'primary' },
     delivered: { label: 'Entregue', variant: 'success' },
     cancelled: { label: 'Cancelado', variant: 'danger' },
+    rejected: { label: 'Recusado', variant: 'danger' },
   }
 
   const { label, variant } = config[status]

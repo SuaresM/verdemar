@@ -12,10 +12,12 @@ import { formatCurrency, formatDate, formatPhone, formatOrderStatusMessage, form
 
 const STATUS_TRANSITIONS: Record<OrderStatus, { label: string; next: OrderStatus | null }> = {
   pending: { label: 'Confirmar Pedido', next: 'confirmed' },
-  confirmed: { label: 'Iniciar Entrega', next: 'in_delivery' },
+  confirmed: { label: 'Iniciar Entrega', next: 'in_route' },
+  in_route: { label: 'Marcar Entregue', next: 'delivered' },
   in_delivery: { label: 'Marcar Entregue', next: 'delivered' },
   delivered: { label: 'Entregue', next: null },
   cancelled: { label: 'Cancelado', next: null },
+  rejected: { label: 'Recusado', next: null },
 }
 
 // ---- Edit Order Modal ----
