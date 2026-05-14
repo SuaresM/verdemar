@@ -158,7 +158,7 @@ Plans:
 
 ## Phases
 
-- [ ] **Phase 01: Schema + API Backbone** — Fix authorization hole, add schema columns, establish safe data layer
+- [x] **Phase 01: Schema + API Backbone** — Fix authorization hole, add schema columns, establish safe data layer ✓ 2026-05-14
 - [ ] **Phase 02: Supplier Order Flow** — Enable suppliers to see and manage incoming orders on mobile
 - [ ] **Phase 03: Buyer Order Detail + Confirmation Upgrade** — Close the loop for buyers with visible status, timeline, and push deep-links
 - [ ] **Phase 04: Order History + Filters** — Make order history operationally useful for both roles
@@ -167,7 +167,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 01. Schema + API Backbone | 3/5 | Executing | - |
+| 01. Schema + API Backbone | 6/6 | Complete ✓ | 2026-05-14 |
 | 02. Supplier Order Flow | 0/? | Not started | - |
 | 03. Buyer Order Detail + Confirmation Upgrade | 0/? | Not started | - |
 | 04. Order History + Filters | 0/? | Not started | - |

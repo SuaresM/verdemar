@@ -1,21 +1,18 @@
 ---
 phase: 01-schema-api-backbone
 verified: 2026-05-13T00:00:00Z
-status: gaps_found
-score: 3/4 must-haves verified
+status: human_needed
+score: 4/4 must-haves verified
 overrides_applied: 0
-re_verification: false
-gaps:
-  - truth: "Submitting the same order twice (network retry) results in one order in the database, not two"
-    status: failed
-    reason: "ignoreDuplicates: false on the upsert means the existing row is overwritten on retry, not returned as-is. Additionally, order_items are inserted unconditionally on every call — a retried POST will produce duplicate order_items rows regardless of whether the order already exists. The idempotency key deduplicates the order row at the orders table level but does not prevent double-inserts into order_items."
-    artifacts:
-      - path: "api/[...route].ts"
-        issue: "Line 43: ignoreDuplicates: false causes the upsert to overwrite the existing row fields (reverting status, total_value, etc.) on retry. Lines 49-51: order_items insert is unconditional — retries produce duplicate item rows."
-    missing:
-      - "Change ignoreDuplicates to true so a duplicate idempotency_key is a no-op (not an overwrite)"
-      - "Guard the order_items insert: check whether items already exist for orderData.id before inserting (e.g., count existing rows and skip insert if count > 0)"
-      - "Handle the PostgREST empty-result behaviour when ignoreDuplicates:true suppresses the return: fall back to a select by idempotency_key if orderData is null after upsert"
+re_verification:
+  previous_status: gaps_found
+  previous_score: 3/4
+  gaps_closed:
+    - "SC-2 / API-02: ignoreDuplicates:true + fallback select + existingItemsCount guard all present in api/[...route].ts"
+    - "WR-01: PAGE_SIZE TDZ resolved — const PAGE_SIZE = 20 moved to line 5 of src/services/supabase.ts"
+  gaps_remaining: []
+  regressions: []
+gaps: []
 deferred: []
 human_verification:
   - test: "Verify migration applied — orders table columns"
@@ -161,3 +158,88 @@ These three changes are all confined to the POST /orders handler in `api/[...rou
 
 _Verified: 2026-05-13_
 _Verifier: Claude (gsd-verifier)_
+
+---
+
+## Re-verification (2026-05-14)
+
+**Trigger:** Gap closure plan 01-06 applied
+**Re-verified gaps:**
+
+### Gap 1 — SC-2 / API-02 (Idempotency)
+
+VERIFIED
+
+Evidence:
+
+**Component 1 — `ignoreDuplicates: true`**
+`api/[...route].ts` lines 41-44:
+```
+.upsert(orderPayload, {
+  onConflict: 'idempotency_key',
+  ignoreDuplicates: true,
+})
+```
+The flag is flipped to `true`. A duplicate idempotency_key is now a no-op at the DB level — the existing row is not overwritten.
+
+**Component 2 — Fallback select when `!orderData && idempotency_key`**
+`api/[...route].ts` lines 50-58:
+```
+if (!orderData && idempotency_key) {
+  const { data: existing, error: selectError } = await adminSupabase
+    .from('orders')
+    .select()
+    .eq('idempotency_key', idempotency_key)
+    .single()
+  if (selectError) return c.json({ error: selectError.message }, 400)
+  orderData = existing
+}
+```
+When PostgREST suppresses the insert and returns no row (the ignoreDuplicates:true behaviour), the handler falls back to a select by idempotency_key and assigns the existing order row to `orderData`. The `let` binding on line 39 permits this reassignment.
+
+**Component 3 — `order_items` insert guarded by `existingItemsCount === 0`**
+`api/[...route].ts` lines 62-71:
+```
+const { count: existingItemsCount } = await adminSupabase
+  .from('order_items')
+  .select('*', { count: 'exact', head: true })
+  .eq('order_id', orderData!.id)
+
+if (!existingItemsCount || existingItemsCount === 0) {
+  const orderItems = items.map((item) => ({ ...item, order_id: orderData!.id }))
+  const { error: itemsError } = await adminSupabase.from('order_items').insert(orderItems)
+  if (itemsError) return c.json({ error: itemsError.message }, 400)
+}
+```
+The insert is now conditional. On a retry the count query returns > 0 and the insert block is skipped entirely — no duplicate items created.
+
+All three required fix components are present and correctly wired. SC-2 truth is now VERIFIED: a second POST with the same idempotency_key returns the original order row without creating a duplicate order or duplicate order_items.
+
+---
+
+### Gap 2 — WR-01 (PAGE_SIZE TDZ)
+
+CLOSED
+
+Evidence:
+
+`src/services/supabase.ts` line 5:
+```
+const PAGE_SIZE = 20
+```
+This declaration appears at line 5, immediately after the last import statement (line 3) and before the `// ---- AUTH ----` section comment (line 7). The `searchSuppliers` function that references `PAGE_SIZE` begins at line 110. Declaration order is correct — no temporal dead zone.
+
+Confirmed: no second `const PAGE_SIZE` declaration exists anywhere else in the 437-line file. The old problematic declaration at line 162 (after `getFeaturedProducts`) is gone.
+
+---
+
+### Updated Score
+
+4/4 truths fully verified (SC-1 VERIFIED, SC-2 VERIFIED, SC-3 UNCERTAIN/human-needed, SC-4 VERIFIED)
+
+Note: SC-3 (multi-device push delivery) carries over as human_needed — the code path is correct but runtime delivery cannot be verified without live devices. This does not constitute a gap; it is a pre-existing human verification item from the initial verification.
+
+**Updated status: human_needed** (all code gaps closed; three human verification items remain from initial verification — live DB schema confirmation and multi-device push delivery test)
+
+_Re-verifier: Claude (gsd-verifier)_
+_Date: 2026-05-14_

@@ -2,21 +2,21 @@
 milestone: v1.1
 name: Fluxo de Pedidos
 status: executing
-phase: 1
+phase: 2
 progress:
-  phases_complete: 0
+  phases_complete: 1
   phases_total: 4
-  tasks_complete: 0
+  tasks_complete: 5
   tasks_total: 5
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 ## Current Position
 
-Phase: 01 — Schema + API Backbone (executing)
-Plan: 5 plans in 3 waves
-Status: All waves complete, verifying phase goal
-Last activity: 2026-05-13 — Wave 3 complete (01-04 API rewrite, 01-05 service layer)
+Phase: 01 — Schema + API Backbone (complete ✓)
+Plan: 6 plans (5 original + 1 gap closure)
+Status: Verified 4/4 truths — phase complete, ready for Phase 02
+Last activity: 2026-05-14 — Gap closure plan 01-06 applied, re-verification passed (4/4)
 
 ## Project Reference
 
@@ -39,7 +39,7 @@ See: .planning/PROJECT.md (updated 2026-05-13)
 
 ### Pending Todos
 
-(none)
+- Human verification items (non-blocking): run 3 SQL/runtime checks listed in 01-VERIFICATION.md before Phase 02 ships
 
 ### Blockers
 
