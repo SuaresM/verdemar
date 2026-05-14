@@ -68,7 +68,14 @@ Plans:
 
 **Depends on:** Phase 01
 
-**Plans:** TBD
+**Plans:** 3 plans (2 waves)
+
+Plans:
+- Wave 1:
+  - [ ] 02-01-PLAN.md — Service layer + utils + API fix (getOrdersBySupplier filter, getPendingOrderCount, formatOrderStatusMessage in_route/rejected, push URL deep-link)
+- Wave 2 (parallel, depends: 02-01):
+  - [ ] 02-02-PLAN.md — SupplierNav badge + App.tsx pendingCount polling
+  - [ ] 02-03-PLAN.md — Orders.tsx two-section layout, RejectOrderModal, polling, deep-link scroll
 
 **UI hint**: yes
 
@@ -168,6 +175,6 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 01. Schema + API Backbone | 6/6 | Complete ✓ | 2026-05-14 |
-| 02. Supplier Order Flow | 0/? | Not started | - |
+| 02. Supplier Order Flow | 0/3 | Not started | - |
 | 03. Buyer Order Detail + Confirmation Upgrade | 0/? | Not started | - |
 | 04. Order History + Filters | 0/? | Not started | - |
