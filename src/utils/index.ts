@@ -97,8 +97,10 @@ export function formatOrderStatusMessage(
   const messages: Partial<Record<OrderStatus, string>> = {
     confirmed: `✅ *Pedido Confirmado!*\n\n🏪 Fornecedor: ${storeName}\n💰 Total: ${total}\n\nSeu pedido foi confirmado e está sendo preparado. Em breve você receberá mais atualizações.\n\n_Rota Verde 🌿_`,
     in_delivery: `🚚 *Pedido a Caminho!*\n\n🏪 Fornecedor: ${storeName}\n💰 Total: ${total}\n\nSeu pedido saiu para entrega! Fique de olho. 😊\n\n_Rota Verde 🌿_`,
+    in_route: `🚚 *Pedido a Caminho!*\n\n🏪 Fornecedor: ${storeName}\n💰 Total: ${total}\n\nSeu pedido saiu para entrega! Fique de olho. 😊\n\n_Rota Verde 🌿_`,
     delivered: `🎉 *Pedido Entregue!*\n\n🏪 Fornecedor: ${storeName}\n💰 Total: ${total}\n\nSeu pedido foi entregue com sucesso. Obrigado pela parceria!\n\n_Rota Verde 🌿_`,
     cancelled: `❌ *Pedido Cancelado*\n\n🏪 Fornecedor: ${storeName}\n💰 Total: ${total}\n\nInfelizmente seu pedido foi cancelado. Entre em contato com o fornecedor para mais informações.\n\n_Rota Verde 🌿_`,
+    rejected: `❌ *Pedido Recusado*\n\n🏪 Fornecedor: ${storeName}\n💰 Total: ${total}\n\nInfelizmente seu pedido foi recusado. Entre em contato com o fornecedor para mais informações.\n\n_Rota Verde 🌿_`,
   }
 
   const text = messages[status] ?? `Atualização do seu pedido na ${storeName}: ${status}`
