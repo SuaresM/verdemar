@@ -36,19 +36,39 @@ app.post('/orders', requireAuth, async (c) => {
     ? { ...order, idempotency_key }
     : order
 
-  const { data: orderData, error: orderError } = await adminSupabase
+  let { data: orderData, error: orderError } = await adminSupabase
     .from('orders')
     .upsert(orderPayload, {
       onConflict: 'idempotency_key',
-      ignoreDuplicates: false,
+      ignoreDuplicates: true,
     })
     .select()
     .single()
-  if (orderError) return c.json({ error: orderError.message }, 400)
 
-  const orderItems = items.map((item) => ({ ...item, order_id: orderData.id }))
-  const { error: itemsError } = await adminSupabase.from('order_items').insert(orderItems)
-  if (itemsError) return c.json({ error: itemsError.message }, 400)
+  // When ignoreDuplicates:true suppresses the insert (duplicate key), PostgREST
+  // returns no row. Fall back to a select by idempotency_key to get the existing row.
+  if (!orderData && idempotency_key) {
+    const { data: existing, error: selectError } = await adminSupabase
+      .from('orders')
+      .select()
+      .eq('idempotency_key', idempotency_key)
+      .single()
+    if (selectError) return c.json({ error: selectError.message }, 400)
+    orderData = existing
+  }
+  if (orderError && !orderData) return c.json({ error: orderError.message }, 400)
+
+  // Guard: skip order_items insert if this is a retry (items already exist for this order).
+  const { count: existingItemsCount } = await adminSupabase
+    .from('order_items')
+    .select('*', { count: 'exact', head: true })
+    .eq('order_id', orderData!.id)
+
+  if (!existingItemsCount || existingItemsCount === 0) {
+    const orderItems = items.map((item) => ({ ...item, order_id: orderData!.id }))
+    const { error: itemsError } = await adminSupabase.from('order_items').insert(orderItems)
+    if (itemsError) return c.json({ error: itemsError.message }, 400)
+  }
 
   // Increment total_sold per product (atomic via Postgres RPC)
   const quantityByProduct: Record<string, number> = {}

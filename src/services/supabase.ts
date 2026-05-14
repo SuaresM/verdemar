@@ -2,6 +2,8 @@ import { supabase } from '../lib/supabaseClient'
 import { apiClient } from '../lib/apiClient'
 import type { Profile, Buyer, Supplier, Product, Order, OrderItem, DeliveryZone } from '../types'
 
+const PAGE_SIZE = 20
+
 // ---- AUTH ----
 export async function signIn(email: string, password: string) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
@@ -158,8 +160,6 @@ export async function getFeaturedProducts(): Promise<Product[]> {
   if (error) return []
   return data
 }
-
-const PAGE_SIZE = 20
 
 export async function searchProducts(
   query?: string,
