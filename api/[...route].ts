@@ -92,9 +92,9 @@ app.post('/orders', requireAuth, async (c) => {
   })).catch(() => {})
 
   sendPush(order.supplier_id as string, {
-    title: 'Novo pedido recebido!',
+    title: 'Novo pedido recebido',
     body: `Pedido #${(orderData.id as string).slice(0, 8).toUpperCase()} aguardando confirmação.`,
-    url: '/supplier/orders',
+    url: `/supplier/orders?order=${orderData.id}`,
   }).catch(() => {})
 
   return c.json(orderData, 201)

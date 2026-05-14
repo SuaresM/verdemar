@@ -225,6 +225,7 @@ export async function getOrdersBySupplier(supplierId: string, limit = 100): Prom
     .from('orders')
     .select('*, buyer:buyers(*), items:order_items(*)')
     .eq('supplier_id', supplierId)
+    .in('status', ['pending', 'confirmed', 'in_route'])
     .order('created_at', { ascending: false })
     .limit(limit)
   if (error) return []
@@ -264,6 +265,15 @@ export async function getOrderById(orderId: string): Promise<Order | null> {
     .single()
   if (error) return null
   return data as Order
+}
+
+export async function getPendingOrderCount(supplierId: string): Promise<number> {
+  const { count } = await supabase
+    .from('orders')
+    .select('id', { count: 'exact', head: true })
+    .eq('supplier_id', supplierId)
+    .eq('status', 'pending')
+  return count || 0
 }
 
 // ---- ADMIN ----
