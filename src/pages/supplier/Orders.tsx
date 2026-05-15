@@ -299,7 +299,15 @@ export default function SupplierOrders() {
     if (!supplier) return
     const load = () => {
       getOrdersBySupplier(supplier.id)
-        .then((data) => setOrders(data))
+        .then((data) =>
+          setOrders((prev) =>
+            data.map((serverOrder) =>
+              updating[serverOrder.id]
+                ? (prev.find((p) => p.id === serverOrder.id) ?? serverOrder)
+                : serverOrder
+            )
+          )
+        )
         .catch(() => toast.error('Erro ao carregar pedidos'))
         .finally(() => {
           if (!hasLoaded.current) {
