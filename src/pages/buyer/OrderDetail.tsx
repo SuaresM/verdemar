@@ -69,7 +69,11 @@ export default function OrderDetail() {
     try {
       await updateOrderStatus(order.id, 'cancelled', undefined)
       const updated = await getOrderById(order.id)
-      setOrder(updated)
+      if (updated) {
+        setOrder(updated)
+      } else {
+        setOrder((prev) => prev ? { ...prev, status: 'cancelled' } : prev)
+      }
       toast.success('Pedido cancelado')
     } catch {
       toast.error('Erro ao cancelar pedido. Tente novamente.')
