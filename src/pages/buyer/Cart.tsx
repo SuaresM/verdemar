@@ -209,7 +209,10 @@ export default function Cart() {
   }
 
   const handleCheckout = async () => {
-    if (!checkoutSection || !buyer) return
+    if (!checkoutSection || !buyer) {
+      toast.error('Sessão expirada. Faça login novamente.')
+      return
+    }
     setCheckoutLoading(true)
     try {
       const itemsData = checkoutSection.items.map((item) => ({
