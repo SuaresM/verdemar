@@ -128,7 +128,7 @@ app.patch('/orders/:id/status', requireAuth, async (c) => {
   const ALLOWED: Record<string, { actor: 'buyer' | 'supplier'; from: string[] }> = {
     cancelled: { actor: 'buyer',    from: ['pending'] },
     confirmed: { actor: 'supplier', from: ['pending'] },
-    rejected:  { actor: 'supplier', from: ['pending'] },
+    rejected:  { actor: 'supplier', from: ['pending', 'confirmed'] },
     in_route:  { actor: 'supplier', from: ['confirmed'] },
     delivered: { actor: 'supplier', from: ['in_route'] },
   }

@@ -57,13 +57,14 @@ function SupplierLayout() {
   const [pendingCount, setPendingCount] = useState(0)
 
   useEffect(() => {
-    if (!supplier) return
+    if (!supplier?.id) return
+    const id = supplier.id
     const refresh = () =>
-      getPendingOrderCount(supplier.id).then(setPendingCount).catch(() => {})
+      getPendingOrderCount(id).then(setPendingCount).catch(() => {})
     refresh()
     const interval = setInterval(refresh, 15000)
     return () => clearInterval(interval)
-  }, [supplier])
+  }, [supplier?.id])
 
   if (isLoading) return <PageLoader />
   if (!profile) return <Navigate to="/login" replace />
