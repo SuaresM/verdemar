@@ -251,8 +251,13 @@ export default function Cart() {
         orderItems as import('../../types').OrderItem[]
       )
 
-      const phone = checkoutSection.supplier.whatsapp.replace(/\D/g, '')
-      const whatsappUrl = `https://wa.me/${phone}?text=${message}`
+      const rawDigits = checkoutSection.supplier.whatsapp.replace(/\D/g, '')
+      if (!/^\d{10,13}$/.test(rawDigits)) {
+        toast.error('Fornecedor sem número de WhatsApp válido. Contate o suporte.')
+        setCheckoutLoading(false)
+        return
+      }
+      const whatsappUrl = `https://wa.me/${rawDigits}?text=${message}`
 
       const capturedItems = checkoutSection.items
       const capturedTotal = checkoutSection.sectionTotal
