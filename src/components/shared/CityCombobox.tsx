@@ -21,8 +21,8 @@ export function CityCombobox({ value, onChange, placeholder = 'Digite a cidade..
   }, [value])
 
   const filtered = query
-    ? CITIES.filter((c) => c.city.toLowerCase().includes(query.toLowerCase())).slice(0, 8)
-    : CITIES.slice(0, 8)
+    ? CITIES.filter((c) => c.city.toLowerCase().includes(query.toLowerCase()))
+    : CITIES
 
   const handleSelect = (city: string, state: string) => {
     lastValidCity.current = city

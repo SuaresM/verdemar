@@ -10,6 +10,16 @@ import { formatCNPJ, formatPhone } from '../../utils'
 import { supabase } from '../../lib/supabaseClient'
 import { CityCombobox } from '../../components/shared/CityCombobox'
 
+const DF_RAS = [
+  'Asa Sul', 'Asa Norte', 'Gama', 'Taguatinga', 'Brazlândia', 'Sobradinho',
+  'Planaltina', 'Paranoá', 'Núcleo Bandeirante', 'Ceilândia', 'Guará',
+  'Cruzeiro', 'Samambaia', 'Santa Maria', 'São Sebastião', 'Recanto das Emas',
+  'Lago Sul', 'Lago Norte', 'Candangolândia', 'Riacho Fundo', 'Águas Claras',
+  'Riacho Fundo II', 'SCIA/Estrutural', 'Sobradinho II', 'Jardim Botânico',
+  'Itapoã', 'SIA', 'Vicente Pires', 'Fercal', 'Sol Nascente/Pôr do Sol',
+  'Arniqueira', 'Arapoanga', 'Água Quente',
+]
+
 export default function Profile() {
   const { buyer, profile, signOut, setBuyer } = useAuthStore()
   const navigate = useNavigate()
@@ -173,7 +183,19 @@ export default function Profile() {
                 <Input label="Número" field="address_number" />
                 <Input label="Complemento" field="address_complement" />
               </div>
-              <Input label="Bairro" field="address_neighborhood" />
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Bairro</label>
+                <select
+                  value={form.address_neighborhood}
+                  onChange={(e) => setForm((prev) => ({ ...prev, address_neighborhood: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
+                >
+                  <option value="">Selecione o bairro...</option>
+                  {DF_RAS.map((ra) => (
+                    <option key={ra} value={ra}>{ra}</option>
+                  ))}
+                </select>
+              </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1">Cidade</label>
                 <CityCombobox

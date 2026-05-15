@@ -129,8 +129,6 @@ export default function StoreSettings() {
       setEditingZone(null)
     } catch {
       toast.error('Erro ao salvar zona')
-      setShowZoneModal(false)
-      setEditingZone(null)
     } finally {
       setZoneSaving(false)
     }
