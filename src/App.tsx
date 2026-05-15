@@ -19,6 +19,7 @@ const Home = lazy(() => import('./pages/buyer/Home'))
 const Search = lazy(() => import('./pages/buyer/Search'))
 const Cart = lazy(() => import('./pages/buyer/Cart'))
 const OrderHistory = lazy(() => import('./pages/buyer/OrderHistory'))
+const OrderDetail = lazy(() => import('./pages/buyer/OrderDetail'))
 const BuyerProfile = lazy(() => import('./pages/buyer/Profile'))
 const SupplierProfilePage = lazy(() => import('./pages/buyer/SupplierProfile'))
 const ProductDetail = lazy(() => import('./pages/buyer/ProductDetail'))
@@ -130,6 +131,7 @@ function AppRoutes() {
           <Route path="/search" element={<Search />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/orders" element={<OrderHistory />} />
+          <Route path="/orders/:id" element={<OrderDetail />} />
           <Route path="/profile" element={<BuyerProfile />} />
           <Route path="/supplier/:id" element={<SupplierProfilePage />} />
           <Route path="/product/:id" element={<ProductDetail />} />
