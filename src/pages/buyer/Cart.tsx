@@ -162,7 +162,14 @@ export default function Cart() {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({})
   const [checkoutSection, setCheckoutSection] = useState<CartSection | null>(null)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
-  const [checkoutSuccess, setCheckoutSuccess] = useState<{ whatsappUrl: string; supplierName: string; orderId: string } | null>(null)
+  const [checkoutSuccess, setCheckoutSuccess] = useState<{
+    whatsappUrl: string
+    supplierName: string
+    orderId: string
+    items: CartSection['items']
+    sectionTotal: number
+    deliveryTimePreference: string | null
+  } | null>(null)
   const [whatsappOpened, setWhatsappOpened] = useState(false)
   const [supplierZones, setSupplierZones] = useState<Record<string, DeliveryZone[]>>({})
   const [selectedZoneId, setSelectedZoneId] = useState<Record<string, string>>({})
@@ -247,9 +254,19 @@ export default function Cart() {
       const phone = checkoutSection.supplier.whatsapp.replace(/\D/g, '')
       const whatsappUrl = `https://wa.me/${phone}?text=${message}`
 
+      const capturedItems = checkoutSection.items
+      const capturedTotal = checkoutSection.sectionTotal
+      const capturedSlot = checkoutSection.deliveryTimePreference || null
       clearSection(checkoutSection.supplier.id)
       setCheckoutSection(null)
-      setCheckoutSuccess({ whatsappUrl, supplierName: checkoutSection.supplier.store_name, orderId: order.id })
+      setCheckoutSuccess({
+        whatsappUrl,
+        supplierName: checkoutSection.supplier.store_name,
+        orderId: order.id,
+        items: capturedItems,
+        sectionTotal: capturedTotal,
+        deliveryTimePreference: capturedSlot,
+      })
     } catch (err) {
       toast.error('Erro ao finalizar pedido. Tente novamente.')
       console.error(err)
