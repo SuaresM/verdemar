@@ -6,16 +6,17 @@ phase: 3
 progress:
   phases_complete: 2
   phases_total: 4
-  tasks_complete: 0
+  tasks_complete: 1
   tasks_total: 6
 updated: 2026-05-15
 ---
 
 ## Current Position
 
-Phase: 03 — Buyer Order Detail + Confirmation Upgrade (ready to execute)
-Status: Phase 03 planned — 3 plans in 2 waves, verified ✓
-Last activity: 2026-05-15 — UI-SPEC approved, research complete, 3 plans created and verified
+Phase: 03 — Buyer Order Detail + Confirmation Upgrade (executing)
+Current plan: 03-02 (next to execute)
+Status: Plan 03-01 complete ✓ — OrderDetail.tsx created (212 lines), commit 24c324e
+Last activity: 2026-05-15 — 03-01 executed: buyer OrderDetail page with polling, timeline, cancel, rejection block
 
 ## Project Reference
 
@@ -41,6 +42,8 @@ See: .planning/PROJECT.md (updated 2026-05-13)
 - Phase 03: OrderStatusBadge size prop added in 03-03 (Badge.tsx) — size="md" for OrderDetail prominence
 - Phase 03: timeline uses [...status_history].reverse() spread — never mutate state array directly
 - Phase 03: PUSH-02 fully wired since Phase 01 — sendPushToBuyer url=/orders/${id}, no API changes needed
+- Phase 03 Plan 01: @ts-expect-error on OrderStatusBadge size prop — cross-plan dependency resolved by 03-03
+- Phase 03 Plan 01: Cancel action single-tap no dialog (D-06) — optimistic reload via getOrderById after PATCH
 
 ### Pending Todos
 

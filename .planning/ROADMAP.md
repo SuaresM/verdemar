@@ -109,7 +109,7 @@ Plans:
 
 Plans:
 - Wave 1:
-  - [ ] 03-01-PLAN.md — OrderDetail.tsx new page (status badge, vertical timeline, cancel button, rejection reason, 15s polling)
+  - [x] 03-01-PLAN.md — OrderDetail.tsx new page (status badge, vertical timeline, cancel button, rejection reason, 15s polling) ✓ 2026-05-15
 - Wave 2 (parallel, depends: 03-01):
   - [ ] 03-02-PLAN.md — Cart.tsx overlay enrichment (fix checkoutSuccess closure bug, add order#, items, delivery slot, Ver Pedido button)
   - [ ] 03-03-PLAN.md — Badge.tsx size prop + App.tsx route registration for /orders/:id
@@ -183,5 +183,5 @@ Plans:
 |-------|----------------|--------|-----------|
 | 01. Schema + API Backbone | 6/6 | Complete ✓ | 2026-05-14 |
 | 02. Supplier Order Flow | 4/4 | Complete ✓ | 2026-05-15 |
-| 03. Buyer Order Detail + Confirmation Upgrade | 0/3 | Not started | - |
+| 03. Buyer Order Detail + Confirmation Upgrade | 1/3 | Executing | - |
 | 04. Order History + Filters | 0/? | Not started | - |
