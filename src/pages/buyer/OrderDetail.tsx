@@ -61,7 +61,7 @@ export default function OrderDetail() {
         .catch(() => { if (!cancelled) toast.error('Erro ao carregar pedido') })
         .finally(() => { if (!cancelled) setLoading(false) })
     load()
-    const interval = setInterval(load, 15000)
+    const interval = setInterval(() => { if (!cancelled) load() }, 15000)
     return () => { cancelled = true; clearInterval(interval) }
   }, [id])
 
