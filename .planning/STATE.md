@@ -7,15 +7,15 @@ progress:
   phases_complete: 2
   phases_total: 4
   tasks_complete: 0
-  tasks_total: 0
+  tasks_total: 6
 updated: 2026-05-15
 ---
 
 ## Current Position
 
-Phase: 03 — Buyer Order Detail + Confirmation Upgrade (not started)
-Status: Phase 02 complete — starting Phase 03
-Last activity: 2026-05-15 — Phase 02 gap closure verified (9/9); 3 human UAT items pending but non-blocking
+Phase: 03 — Buyer Order Detail + Confirmation Upgrade (ready to execute)
+Status: Phase 03 planned — 3 plans in 2 waves, verified ✓
+Last activity: 2026-05-15 — UI-SPEC approved, research complete, 3 plans created and verified
 
 ## Project Reference
 
@@ -37,6 +37,10 @@ See: .planning/PROJECT.md (updated 2026-05-13)
 - MCP tool mcp__plugin_supabase_supabase__apply_migration stripped from agent context (bug #13898); worked around using Supabase Management API with OAuth token from credential store
 - Phase 02: ALLOWED.rejected.from fixed to ['pending','confirmed'] — D-09 fully implemented
 - Phase 02: 15s polling pattern established (no Realtime) — use same in Phase 03
+- Phase 03: checkoutSuccess state must capture items/total/deliveryTimePreference BEFORE clearSection() — Cart.tsx closure bug fixed in 03-02
+- Phase 03: OrderStatusBadge size prop added in 03-03 (Badge.tsx) — size="md" for OrderDetail prominence
+- Phase 03: timeline uses [...status_history].reverse() spread — never mutate state array directly
+- Phase 03: PUSH-02 fully wired since Phase 01 — sendPushToBuyer url=/orders/${id}, no API changes needed
 
 ### Pending Todos
 
