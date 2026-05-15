@@ -1,18 +1,18 @@
 ---
 phase: 02-supplier-order-flow
-verified: 2026-05-14T20:00:00Z
-status: gaps_found
-score: 8/9 must-haves verified
+verified: 2026-05-15T02:00:00Z
+status: human_needed
+score: 9/9 must-haves verified
 overrides_applied: 0
-gaps:
-  - truth: "Tapping Recusar on a confirmed order triggers a server-side state machine that accepts the confirmed→rejected transition"
-    status: failed
-    reason: "The server ALLOWED table (api/[...route].ts line 131) sets rejected: { actor: 'supplier', from: ['pending'] }. A supplier tapping Recusar on a confirmed order will get a 422 error from the API. The UI renders the Recusar button for confirmed orders (Orders.tsx line 418, 566) and the client calls updateOrderStatus(order.id, 'rejected', reason), but the server will reject the transition with 'Não é possível passar de confirmed para rejected'. Decision D-09 in 02-CONTEXT.md explicitly states the Recusar button must be available on both pending AND confirmed orders."
-    artifacts:
-      - path: "api/[...route].ts"
-        issue: "ALLOWED.rejected.from is ['pending'] only (line 131). Must be ['pending', 'confirmed'] to match D-09."
-    missing:
-      - "Change ALLOWED.rejected.from in api/[...route].ts from ['pending'] to ['pending', 'confirmed']"
+re_verification:
+  previous_status: gaps_found
+  previous_score: 8/9
+  gaps_closed:
+    - "ALLOWED.rejected.from now ['pending', 'confirmed'] — confirmed→rejected transition works server-side (api/[...route].ts line 131)"
+    - "WR-02: SupplierLayout useEffect dependency changed to [supplier?.id] with captured id closure (src/App.tsx line 67)"
+    - "WR-05: Orders.tsx polling load() uses functional setOrders updater with updating[] guard to skip in-flight orders (src/pages/supplier/Orders.tsx lines 302-309)"
+  gaps_remaining: []
+  regressions: []
 human_verification:
   - test: "Push notification received and deep-link works end-to-end"
     expected: "Supplier with PWA installed receives a push notification when a buyer places an order; tapping the notification opens /supplier/orders?order=<id>; the matching card is expanded, scrolled to, and briefly highlighted."
@@ -28,9 +28,15 @@ human_verification:
 # Phase 02: Supplier Order Flow Verification Report
 
 **Phase Goal:** Suppliers can see incoming orders, accept or reject with a reason, and progress orders through to delivery — all from a mobile screen.
-**Verified:** 2026-05-14T20:00:00Z
-**Status:** gaps_found
-**Re-verification:** No — initial verification
+**Verified:** 2026-05-15T02:00:00Z
+**Status:** human_needed
+**Re-verification:** Yes — after gap closure (02-04 plan)
+
+## Re-verification Summary
+
+The single BLOCKER from the initial verification (confirmed→rejected blocked server-side) is now closed. All 9 must-haves are VERIFIED. Three human-verification items remain — these were known from the initial verification and require a running browser or real device. They are not code gaps.
+
+**Gap closed:** `api/[...route].ts` line 131 now reads `rejected: { actor: 'supplier', from: ['pending', 'confirmed'] }`. Two code-quality fixes (WR-02 polling dep, WR-05 polling guard) were also applied. No regressions found.
 
 ## Goal Achievement
 
@@ -38,90 +44,89 @@ human_verification:
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | Two-section layout renders (Pendentes + Em andamento) with correct empty states | VERIFIED | Orders.tsx lines 618-654: `pendingOrders` filter (status=pending) and `activeOrders` filter (confirmed|in_route); section headers "PENDENTES (N)" and "EM ANDAMENTO" present; empty states "Tudo em dia!" and "Nada em andamento" present. |
-| 2 | SupplierNav badge shows pending order count from all supplier screens | VERIFIED | SupplierNav.tsx line 4: `pendingCount` prop accepted; line 29-31: badge rendered conditionally when >0; App.tsx lines 57-78: `SupplierLayout` polls `getPendingOrderCount` every 15s and passes to `<SupplierNav pendingCount={pendingCount} />`. |
-| 3 | Aceitar tap sets pending→confirmed with no confirmation dialog | VERIFIED | Orders.tsx line 519-530: pending card has a single `<button onClick={() => handleUpdateStatus(order)}>` calling `updateOrderStatus(order.id, 'confirmed')` with no dialog; server ALLOWED confirms: `confirmed: { actor: 'supplier', from: ['pending'] }`. |
-| 4 | RejectOrderModal has exactly 6 predefined reasons + Outro free-text; submit blocked until valid | VERIFIED | Orders.tsx lines 192-199: REASONS array has exactly 6 entries ('Sem estoque', 'Fora de temporada', 'Região/dia inválido', 'Pedido mínimo não atingido', 'Preço desatualizado', 'Outro'); lines 204-205: isDisabled logic blocks submit unless selected and (if Outro) customReason non-empty; lines 261-276: textarea shown only when selected==='Outro'. |
-| 5 | Em rota button on confirmed orders advances confirmed→in_route | VERIFIED | Orders.tsx lines 551-585: confirmed card renders 'Em rota' button calling handleUpdateStatus; STATUS_TRANSITIONS.confirmed = {label:'Em rota', next:'in_route'} (line 15); server ALLOWED: `in_route: { actor: 'supplier', from: ['confirmed'] }`. |
-| 6 | Entregue button on in_route orders advances in_route→delivered | VERIFIED | Orders.tsx lines 587-600: in_route card renders 'Entregue' button calling handleUpdateStatus; STATUS_TRANSITIONS.in_route = {label:'Entregue', next:'delivered'} (line 16); server ALLOWED: `delivered: { actor: 'supplier', from: ['in_route'] }`. |
-| 7 | Push notification URL includes ?order=<id> deep-link; deep-link scroll+expand works | VERIFIED (push URL) / HUMAN (end-to-end) | api/[...route].ts line 97: `url: \`/supplier/orders?order=${orderData.id}\``; sw.ts line 65 reads `data.url`; Orders.tsx lines 317-330: useSearchParams reads `?order`, finds order, expands card, scrolls, sets 1500ms highlight ring. Server side and client side both wired correctly. End-to-end push delivery requires human test. |
-| 8 | Recusar on confirmed orders is blocked by server state machine (WR-06) | FAILED | Server ALLOWED.rejected.from is ['pending'] only (api/[...route].ts line 131). UI shows Recusar button on confirmed orders (Orders.tsx line 418: canReject = pending OR confirmed; line 566: button rendered). Client would call updateOrderStatus(order.id, 'rejected', reason) which hits PATCH /orders/:id/status, but server returns 422 "Não é possível passar de 'confirmed' para 'rejected'". D-09 requires this transition. |
-| 9 | handleCancel removed; delivered/cancelled/rejected excluded from both sections | VERIFIED | grep for handleCancel in Orders.tsx returns 0 matches. getOrdersBySupplier in supabase.ts line 228 filters `.in('status', ['pending', 'confirmed', 'in_route'])`. pendingOrders/activeOrders client filters also exclude terminal states. |
+| 1 | Two-section layout renders (Pendentes + Em andamento) with correct empty states | VERIFIED | Orders.tsx lines 618-661: `pendingOrders` filter (status=pending) and `activeOrders` filter (confirmed|in_route); section headers "PENDENTES (N)" and "EM ANDAMENTO" present; empty states "Tudo em dia!" and "Nada em andamento" present. |
+| 2 | SupplierNav badge shows pending order count from all supplier screens | VERIFIED | SupplierNav.tsx line 4: `pendingCount` prop accepted; lines 29-31: badge rendered conditionally when >0; App.tsx lines 59-67: `SupplierLayout` polls `getPendingOrderCount` every 15s with primitive dep `[supplier?.id]` and passes to `<SupplierNav pendingCount={pendingCount} />`. |
+| 3 | Aceitar tap sets pending→confirmed with no confirmation dialog | VERIFIED | Orders.tsx: pending card has a single button calling `handleUpdateStatus(order)` → `updateOrderStatus(order.id, 'confirmed')` with no dialog; server ALLOWED.confirmed.from = `['pending']` confirmed at api/[...route].ts line 130. |
+| 4 | RejectOrderModal has exactly 6 predefined reasons + Outro free-text; submit blocked until valid | VERIFIED | Orders.tsx lines 192-199: REASONS array has exactly 6 entries ('Sem estoque', 'Fora de temporada', 'Região/dia inválido', 'Pedido mínimo não atingido', 'Preço desatualizado', 'Outro'); lines 204-205: isDisabled blocks submit unless selected and (if Outro) customReason non-empty; line 251: textarea shown only when selected==='Outro'. |
+| 5 | Em rota button on confirmed orders advances confirmed→in_route | VERIFIED | Orders.tsx: confirmed card renders 'Em rota' button calling handleUpdateStatus; STATUS_TRANSITIONS.confirmed = {label:'Em rota', next:'in_route'} (line 15); server ALLOWED.in_route.from = `['confirmed']` at api/[...route].ts line 132. |
+| 6 | Entregue button on in_route orders advances in_route→delivered | VERIFIED | Orders.tsx: in_route card renders 'Entregue' button calling handleUpdateStatus; STATUS_TRANSITIONS.in_route = {label:'Entregue', next:'delivered'} (line 16); server ALLOWED.delivered.from = `['in_route']` at api/[...route].ts line 133. |
+| 7 | Push notification URL includes ?order=<id> deep-link; deep-link scroll+expand works | VERIFIED (push URL) / HUMAN (end-to-end) | api/[...route].ts line 97: url template literal with orderData.id; sw.ts reads data.url in notificationclick; Orders.tsx lines 294-330: useSearchParams reads `?order`, finds order, expands card, scrolls, sets 1500ms highlight ring. End-to-end push delivery requires human test. |
+| 8 | Tapping Recusar on a confirmed order triggers a server-side state machine that accepts the confirmed→rejected transition | VERIFIED | api/[...route].ts line 131: `rejected: { actor: 'supplier', from: ['pending', 'confirmed'] }` — 'confirmed' now present. Orders.tsx line 426: `canReject = order.status === 'pending' || order.status === 'confirmed'`; line 574: Recusar button rendered for confirmed cards. Server will return 200 (not 422) for confirmed→rejected. D-09 fully satisfied. |
+| 9 | handleCancel removed; delivered/cancelled/rejected excluded from both sections | VERIFIED | grep for handleCancel returns 0 matches. supabase.ts line 228: `.in('status', ['pending', 'confirmed', 'in_route'])`. pendingOrders/activeOrders client-side filters also exclude terminal states. |
 
-**Score:** 8/9 truths verified
+**Score:** 9/9 truths verified
 
 ### Required Artifacts
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `src/services/supabase.ts` | getOrdersBySupplier with status filter + getPendingOrderCount export | VERIFIED | Line 228: `.in('status', ['pending', 'confirmed', 'in_route'])` present. Lines 270-277: `getPendingOrderCount` exported, queries orders by supplier_id and status='pending' with count:exact. |
-| `src/utils/index.ts` | formatOrderStatusMessage with in_route and rejected cases | VERIFIED | Line 100: `in_route:` entry with WhatsApp copy. Line 103: `rejected:` entry with WhatsApp copy. Legacy `in_delivery` entry preserved. |
-| `api/[...route].ts` | Push URL includes order id query param | VERIFIED | Line 97: template literal form `\`/supplier/orders?order=${orderData.id}\`` present. Title 'Novo pedido recebido' (no exclamation mark) confirmed at line 95. |
-| `src/components/layout/SupplierNav.tsx` | pendingCount prop and badge markup | VERIFIED | Line 4: prop accepted with default 0. Lines 26-37: conditional badge on /supplier/orders icon. bg-danger, -top-1 -right-1 positioning, 9+ cap — all present. |
-| `src/App.tsx` | SupplierLayout fetches count, polls 15s, passes to SupplierNav | VERIFIED | Line 6: import present. Lines 57-66: useState(0), useEffect polling 15s with clearInterval cleanup, guarded on supplier. Line 78: prop passed. Hooks called before guard returns (hooks ordering correct). |
-| `src/pages/supplier/Orders.tsx` | Two-section layout, RejectOrderModal, polling, deep-link | VERIFIED (with gap) | All structural elements present. RejectOrderModal component defined (lines 183-280). 15s polling with hasLoaded guard (lines 293, 305-306, 312). Deep-link via useSearchParams (lines 294-330). Two-section layout (lines 618-654). Gap: Recusar on confirmed orders will be rejected by server. |
+| `api/[...route].ts` | State machine with confirmed→rejected transition | VERIFIED | Line 131: `rejected: { actor: 'supplier', from: ['pending', 'confirmed'] }` — gap now closed. Actor check at line 139 still validates caller is the order's supplier. |
+| `src/App.tsx` | SupplierLayout fetches count, polls 15s, passes to SupplierNav | VERIFIED | Lines 59-67: useEffect with `[supplier?.id]` dep, captures `const id = supplier.id` at effect invocation, clearInterval cleanup. Line 79: `pendingCount` prop passed. |
+| `src/pages/supplier/Orders.tsx` | Two-section layout, RejectOrderModal, polling, deep-link | VERIFIED | All elements present. Polling uses functional setOrders updater with `updating[serverOrder.id]` guard (lines 302-309). Deep-link (lines 294-330). Two-section layout (lines 618-661). RejectOrderModal fully implemented. |
+| `src/services/supabase.ts` | getOrdersBySupplier with status filter + getPendingOrderCount export | VERIFIED | Line 228: `.in('status', ['pending', 'confirmed', 'in_route'])`. Lines 270-277: `getPendingOrderCount` exported, queries with count:exact head:true. |
+| `src/components/layout/SupplierNav.tsx` | pendingCount prop and badge markup | VERIFIED | Line 4: prop accepted with default 0. Lines 26-37: conditional badge on /supplier/orders icon; bg-danger, -top-1 -right-1 positioning; 9+ cap. |
 
 ### Key Link Verification
 
 | From | To | Via | Status | Details |
 |------|----|-----|--------|---------|
-| Orders.tsx handleReject | supabase.ts updateOrderStatus | `updateOrderStatus(order.id, 'rejected', reason)` | WIRED (client) / BROKEN (server for confirmed) | Client wiring correct (Orders.tsx line 368). Server only allows rejected from pending (api/[...route].ts line 131). |
-| Orders.tsx deep-link effect | DOM card element | `document.getElementById('order-card-${targetOrderId}')` | WIRED | Orders.tsx line 323 reads the id; line 423 sets `id={'order-card-${order.id}'}` on every card div. |
-| Orders.tsx polling | getOrdersBySupplier | `setInterval(load, 15000)` | WIRED | Orders.tsx line 312; getOrdersBySupplier called in load() at line 301. |
-| App.tsx SupplierLayout | SupplierNav pendingCount prop | `pendingCount={pendingCount}` | WIRED | App.tsx line 78; SupplierNav.tsx line 4. |
-| App.tsx SupplierLayout | getPendingOrderCount | `setInterval(refresh, 15000)` | WIRED | App.tsx lines 61-65. |
-| api/[...route].ts sendPush | sw.ts notificationclick | url payload with order id | WIRED | api/[...route].ts line 97 sets url; sw.ts line 65 reads data.url in notificationclick handler. |
+| Orders.tsx handleReject (confirmed status) | api/[...route].ts ALLOWED.rejected.from | `PATCH /api/orders/:id/status { status: 'rejected' }` | WIRED | ALLOWED.rejected.from = `['pending', 'confirmed']` at line 131. Client calls `updateOrderStatus(order.id, 'rejected', reason)` (Orders.tsx line 368). Server will permit the transition. |
+| Orders.tsx handleReject (pending status) | api/[...route].ts ALLOWED.rejected.from | `PATCH /api/orders/:id/status { status: 'rejected' }` | WIRED | Same ALLOWED rule covers pending as before. No regression. |
+| Orders.tsx deep-link effect | DOM card element | `document.getElementById('order-card-${targetOrderId}')` | WIRED | Orders.tsx line 323 reads the id; card divs have `id={'order-card-${order.id}'}`. |
+| Orders.tsx polling | getOrdersBySupplier | `setInterval(load, 15000)` | WIRED | Orders.tsx line 320; getOrdersBySupplier called in load() at line 301. Functional updater guards in-flight orders (lines 302-309). |
+| App.tsx SupplierLayout | SupplierNav pendingCount prop | `pendingCount={pendingCount}` | WIRED | App.tsx line 79; SupplierNav.tsx line 4. |
+| App.tsx SupplierLayout | getPendingOrderCount | `setInterval(refresh, 15000)` | WIRED | App.tsx lines 63-65; dep array `[supplier?.id]` prevents spurious restarts. |
+| api/[...route].ts sendPush | sw.ts notificationclick | url payload with order id | WIRED | api/[...route].ts line 97 sets url; sw.ts reads data.url in notificationclick handler. |
 
 ### Data-Flow Trace (Level 4)
 
 | Artifact | Data Variable | Source | Produces Real Data | Status |
 |----------|---------------|--------|--------------------|--------|
-| Orders.tsx | `orders` state | getOrdersBySupplier → Supabase query with status filter | Yes — real DB query with supplier_id + status IN filter | FLOWING |
-| App.tsx SupplierLayout | `pendingCount` state | getPendingOrderCount → Supabase count query | Yes — head:true count query by supplier_id + status='pending' | FLOWING |
-| SupplierNav.tsx | `pendingCount` prop | Passed from App.tsx SupplierLayout | Yes — live polled integer | FLOWING |
+| Orders.tsx | `orders` state | getOrdersBySupplier → Supabase query with supplier_id + status IN filter | Yes — real DB query (supabase.ts line 223-233) | FLOWING |
+| App.tsx SupplierLayout | `pendingCount` state | getPendingOrderCount → Supabase count query (head:true) | Yes — real DB count query (supabase.ts lines 270-277) | FLOWING |
+| SupplierNav.tsx | `pendingCount` prop | Passed from App.tsx SupplierLayout via polling | Yes — live polled integer from DB | FLOWING |
 
 ### Behavioral Spot-Checks
-
-Runnable entry points are not available without starting a dev server. Spot-checks performed via static analysis only.
 
 | Behavior | Check | Result | Status |
 |----------|-------|--------|--------|
 | handleCancel removed | grep Orders.tsx for 'handleCancel' | 0 matches | PASS |
 | STATUS_TRANSITIONS uses in_route not in_delivery | STATUS_TRANSITIONS.confirmed.next = 'in_route' (line 15) | in_route confirmed | PASS |
-| 6 rejection reasons | REASONS array in RejectOrderModal | Exactly 6 entries | PASS |
+| 6 rejection reasons | REASONS array in RejectOrderModal | Exactly 6 entries (lines 192-199) | PASS |
 | Push URL has order id | api/[...route].ts line 97 | Template literal with orderData.id | PASS |
-| confirmed→rejected blocked server-side | ALLOWED.rejected.from | ['pending'] only | FAIL |
+| confirmed→rejected allowed server-side | ALLOWED.rejected.from at api/[...route].ts line 131 | `['pending', 'confirmed']` — both present | PASS |
+| SupplierLayout dep is primitive | grep `[supplier?.id]` in App.tsx | Line 67: `}, [supplier?.id])` | PASS |
+| Polling guard skips in-flight orders | grep `updating[serverOrder.id]` in Orders.tsx | Line 305: present inside setOrders functional updater | PASS |
+| getOrdersBySupplier excludes terminal statuses | supabase.ts line 228 | `.in('status', ['pending', 'confirmed', 'in_route'])` | PASS |
 
 ### Requirements Coverage
 
 | Requirement | Source Plan | Description | Status | Evidence |
 |-------------|------------|-------------|--------|----------|
-| SUPP-01 | 02-02, 02-03 | Fornecedor vê lista de pedidos pendentes com contador de não lidos | SATISFIED | Badge in SupplierNav; two-section layout with pending section; polling for count. |
-| SUPP-02 | 02-03 | Fornecedor aceita pedido com um toque (sem dialog de confirmação) | SATISFIED | Aceitar button calls handleUpdateStatus directly; no confirmation dialog in code. |
-| SUPP-03 | 02-03 | Fornecedor recusa pedido com motivo obrigatório (lista predefinida + campo livre) | PARTIALLY SATISFIED | RejectOrderModal fully implements the 6-reason list and Outro free-text with submit block. However, rejecting a confirmed order (D-09 allows this) will be rejected by the server (WR-06 gap). Rejection of pending orders works. |
+| SUPP-01 | 02-02, 02-03 | Fornecedor vê lista de pedidos pendentes com contador de não lidos | SATISFIED | Badge in SupplierNav with live polled count; two-section layout with pending section. |
+| SUPP-02 | 02-03, 02-04 | Fornecedor aceita pedido com um toque (sem dialog de confirmação) | SATISFIED | Aceitar button calls handleUpdateStatus directly; no confirmation dialog in code. |
+| SUPP-03 | 02-03, 02-04 | Fornecedor recusa pedido com motivo obrigatório (lista predefinida + campo livre) | SATISFIED | RejectOrderModal: 6 reasons + Outro free-text, submit blocked until valid; confirmed→rejected now works server-side (gap closed in 02-04). |
 | SUPP-04 | 02-03 | Fornecedor marca pedido como "Em rota" | SATISFIED | Em rota button on confirmed orders; server allows in_route from confirmed. |
 | SUPP-05 | 02-03 | Fornecedor marca pedido como "Entregue" | SATISFIED | Entregue button on in_route orders; server allows delivered from in_route. |
-| PUSH-01 | 02-01, 02-03 | Fornecedor recebe push ao chegar novo pedido; tap abre pedido diretamente | SATISFIED (code) / HUMAN NEEDED (delivery) | Push URL correct; service worker reads url; deep-link scroll+expand wired. End-to-end delivery needs human test. |
+| PUSH-01 | 02-01, 02-03 | Fornecedor recebe push ao chegar novo pedido; tap abre pedido diretamente | SATISFIED (code) / HUMAN NEEDED (delivery) | Push URL correct (api/[...route].ts line 97); service worker reads url (sw.ts); deep-link scroll+expand wired (Orders.tsx lines 294-330). End-to-end push delivery requires human test. |
 
 ### Anti-Patterns Found
 
-| File | Line | Pattern | Severity | Impact |
-|------|------|---------|----------|--------|
-| `api/[...route].ts` | 131 | `rejected: { actor: 'supplier', from: ['pending'] }` — missing 'confirmed' in from array | BLOCKER | Supplier cannot reject a confirmed order; UI shows the button but server returns 422. |
+None — no blockers or warnings. The previous BLOCKER (`ALLOWED.rejected.from = ['pending']` only) is now resolved. The `placeholder=` attribute in Orders.tsx line 255 is a textarea UI hint in RejectOrderModal, not a data stub.
 
 ### Human Verification Required
 
 #### 1. Push Notification End-to-End (PUSH-01)
 
-**Test:** Install the app as a PWA to home screen on a mobile device. Log in as a supplier. Then, using a separate buyer account, place an order from a supplier the test supplier account owns. Wait for the push notification.
+**Test:** Install the app as a PWA to home screen on a mobile device. Log in as a supplier. Then, using a separate buyer account, place an order from that supplier. Wait for the push notification.
 **Expected:** Supplier device receives a push notification titled "Novo pedido recebido". Tapping it opens `/supplier/orders?order=<order-uuid>`. The matching order card is expanded, scrolled into view, and shows a primary-colored ring highlight for ~1.5 seconds.
-**Why human:** Requires VAPID push delivery over the internet to a real subscribed device, and service worker `notificationclick` can only fire in a real browser context.
+**Why human:** Requires VAPID push delivery over the internet to a real subscribed device. Service worker `notificationclick` can only fire in a real browser context.
 
 #### 2. Silent 15s Polling (no spinner flash)
 
 **Test:** Log in as a supplier, navigate to `/supplier/orders`, and wait 15+ seconds without interacting.
 **Expected:** The page does not show a loading spinner or flash during the background refresh. Orders update silently.
-**Why human:** Timing and visual behavior requires a running browser.
+**Why human:** Timing and visual behavior requires a running browser. The `hasLoaded` ref guard in Orders.tsx (line 293) is designed to prevent this — visual confirmation is needed.
 
 #### 3. Badge Count Visible from All Supplier Screens
 
@@ -129,22 +134,21 @@ Runnable entry points are not available without starting a dev server. Spot-chec
 **Expected:** The ClipboardList icon in the bottom nav shows a red badge with the pending order count on all screens, not only on the orders screen.
 **Why human:** Visual rendering and nav behavior requires a running browser.
 
-### Gaps Summary
+### Gap Closure Verification
 
-One BLOCKER gap prevents full goal achievement: the server-side state machine does not allow confirmed→rejected. This means a supplier who has already accepted an order (confirmed status) cannot subsequently reject it using the "Recusar" button that appears on confirmed cards. The client code and UI are correctly implemented per D-09, but the server `ALLOWED` table in `api/[...route].ts` restricts `rejected` to only transition from `['pending']`.
+The single BLOCKER from the initial verification is confirmed closed:
 
-Fix: change line 131 of `api/[...route].ts` from:
-```
-rejected:  { actor: 'supplier', from: ['pending'] },
-```
-to:
-```
-rejected:  { actor: 'supplier', from: ['pending', 'confirmed'] },
-```
+- **Before:** `rejected: { actor: 'supplier', from: ['pending'] }` — confirmed orders could not be rejected; server returned 422.
+- **After:** `rejected: { actor: 'supplier', from: ['pending', 'confirmed'] }` — both pending and confirmed orders can be rejected by the supplier per D-09.
 
-All other phase deliverables are correctly implemented and wired. The automated-verifiable portions of PUSH-01 (push URL payload, service worker url handling, deep-link scroll/expand in Orders.tsx) are all wired correctly — only the end-to-end push delivery requires human testing.
+Evidence: `api/[...route].ts` line 131 reads exactly `rejected:  { actor: 'supplier', from: ['pending', 'confirmed'] },` — verified by direct file read.
+
+Two code-quality fixes also confirmed:
+- `src/App.tsx` line 67: `}, [supplier?.id])` — primitive dep, no stale-closure risk.
+- `src/pages/supplier/Orders.tsx` lines 302-309: functional `setOrders` updater with `updating[serverOrder.id]` guard — polling no longer races against optimistic mutations.
 
 ---
 
-_Verified: 2026-05-14T20:00:00Z_
+_Verified: 2026-05-15T02:00:00Z_
 _Verifier: Claude (gsd-verifier)_
+_Re-verification after: 02-04 gap closure_
