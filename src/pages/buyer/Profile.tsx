@@ -8,7 +8,7 @@ import { Header } from '../../components/layout/Header'
 import { openSupportWhatsApp } from '../../services/whatsapp'
 import { formatCNPJ, formatPhone } from '../../utils'
 import { supabase } from '../../lib/supabaseClient'
-import { CityCombobox } from '../../components/shared/CityCombobox'
+import { CITIES } from '../../constants/cities'
 
 const DF_RAS = [
   'Asa Sul', 'Asa Norte', 'Gama', 'Taguatinga', 'Brazlândia', 'Sobradinho',
@@ -198,11 +198,19 @@ export default function Profile() {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1">Cidade</label>
-                <CityCombobox
-                  strict
+                <select
                   value={form.address_city}
-                  onChange={(city, state) => setForm((prev) => ({ ...prev, address_city: city, address_state: state }))}
-                />
+                  onChange={(e) => {
+                    const selected = CITIES.find((c) => c.city === e.target.value)
+                    setForm((prev) => ({ ...prev, address_city: e.target.value, address_state: selected?.state ?? '' }))
+                  }}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
+                >
+                  <option value="">Selecione a cidade...</option>
+                  {CITIES.map((c) => (
+                    <option key={`${c.city}-${c.state}`} value={c.city}>{c.city} — {c.state}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1">Estado</label>
