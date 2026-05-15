@@ -415,18 +415,34 @@ export async function getDeliveryZonesBySupplier(supplierId: string): Promise<De
 export async function createDeliveryZone(
   zone: Omit<DeliveryZone, 'id' | 'created_at' | 'supplier_id'>
 ): Promise<DeliveryZone> {
-  return apiClient.post<DeliveryZone>('/supplier/delivery-zones', zone)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+  const { data, error } = await supabase
+    .from('delivery_zones')
+    .insert({ ...zone, supplier_id: user.id })
+    .select()
+    .single()
+  if (error) throw error
+  return data
 }
 
 export async function updateDeliveryZone(
   id: string,
   zone: Pick<DeliveryZone, 'city' | 'state' | 'days' | 'hours_start' | 'hours_end'>
 ): Promise<void> {
-  await apiClient.put(`/supplier/delivery-zones/${id}`, zone)
+  const { error } = await supabase
+    .from('delivery_zones')
+    .update(zone)
+    .eq('id', id)
+  if (error) throw error
 }
 
 export async function deleteDeliveryZone(id: string): Promise<void> {
-  await apiClient.delete(`/supplier/delivery-zones/${id}`)
+  const { error } = await supabase
+    .from('delivery_zones')
+    .delete()
+    .eq('id', id)
+  if (error) throw error
 }
 
 export async function getZoneCountsBySuppliers(
