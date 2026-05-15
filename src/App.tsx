@@ -1,8 +1,9 @@
-import { Suspense, lazy, useEffect } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { useAuthStore } from './stores/authStore'
 import { supabase } from './lib/supabaseClient'
+import { getPendingOrderCount } from './services/supabase'
 import { PageLoader } from './components/shared/LoadingSpinner'
 import { ErrorBoundary } from './components/shared/ErrorBoundary'
 import { BuyerNav } from './components/layout/BuyerNav'
@@ -51,7 +52,19 @@ function BuyerLayout() {
 }
 
 function SupplierLayout() {
-  const { profile, isLoading } = useAuthStore()
+  const { profile, isLoading, supplier } = useAuthStore()
+
+  const [pendingCount, setPendingCount] = useState(0)
+
+  useEffect(() => {
+    if (!supplier) return
+    const refresh = () =>
+      getPendingOrderCount(supplier.id).then(setPendingCount).catch(() => {})
+    refresh()
+    const interval = setInterval(refresh, 15000)
+    return () => clearInterval(interval)
+  }, [supplier])
+
   if (isLoading) return <PageLoader />
   if (!profile) return <Navigate to="/login" replace />
   if (profile.role !== 'supplier') return <Navigate to="/" replace />
@@ -62,7 +75,7 @@ function SupplierLayout() {
           <Outlet />
         </ErrorBoundary>
       </div>
-      <SupplierNav />
+      <SupplierNav pendingCount={pendingCount} />
     </div>
   )
 }
