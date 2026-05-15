@@ -72,10 +72,10 @@ Plans:
 
 Plans:
 - Wave 1:
-  - [ ] 02-01-PLAN.md — Service layer + utils + API fix (getOrdersBySupplier filter, getPendingOrderCount, formatOrderStatusMessage in_route/rejected, push URL deep-link)
+  - [x] 02-01-PLAN.md — Service layer + utils + API fix (getOrdersBySupplier filter, getPendingOrderCount, formatOrderStatusMessage in_route/rejected, push URL deep-link)
 - Wave 2 (parallel, depends: 02-01):
-  - [ ] 02-02-PLAN.md — SupplierNav badge + App.tsx pendingCount polling
-  - [ ] 02-03-PLAN.md — Orders.tsx two-section layout, RejectOrderModal, polling, deep-link scroll
+  - [x] 02-02-PLAN.md — SupplierNav badge + App.tsx pendingCount polling
+  - [x] 02-03-PLAN.md — Orders.tsx two-section layout, RejectOrderModal, polling, deep-link scroll
 
 **UI hint**: yes
 
@@ -166,7 +166,7 @@ Plans:
 ## Phases
 
 - [x] **Phase 01: Schema + API Backbone** — Fix authorization hole, add schema columns, establish safe data layer ✓ 2026-05-14
-- [ ] **Phase 02: Supplier Order Flow** — Enable suppliers to see and manage incoming orders on mobile
+- [x] **Phase 02: Supplier Order Flow** — Enable suppliers to see and manage incoming orders on mobile ✓ 2026-05-15
 - [ ] **Phase 03: Buyer Order Detail + Confirmation Upgrade** — Close the loop for buyers with visible status, timeline, and push deep-links
 - [ ] **Phase 04: Order History + Filters** — Make order history operationally useful for both roles
 
@@ -175,6 +175,6 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 01. Schema + API Backbone | 6/6 | Complete ✓ | 2026-05-14 |
-| 02. Supplier Order Flow | 0/3 | Not started | - |
+| 02. Supplier Order Flow | 4/4 | Complete ✓ | 2026-05-15 |
 | 03. Buyer Order Detail + Confirmation Upgrade | 0/? | Not started | - |
 | 04. Order History + Filters | 0/? | Not started | - |
