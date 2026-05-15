@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { CalendarClock, XCircle, AlertTriangle, PackageOpen } from 'lucide-react'
 import { getOrderById, updateOrderStatus } from '../../services/supabase'
+import { useAuthStore } from '../../stores/authStore'
 import type { Order, OrderStatus, StatusHistoryEntry } from '../../types'
 import { Header } from '../../components/layout/Header'
 import { OrderStatusBadge } from '../../components/shared/Badge'
@@ -43,6 +44,7 @@ const STATUS_LABELS_PT: Record<OrderStatus, string> = {
 export default function OrderDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { buyer } = useAuthStore()
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
   const [cancelling, setCancelling] = useState(false)
@@ -65,6 +67,10 @@ export default function OrderDetail() {
 
   const handleCancel = async () => {
     if (!order || cancelling) return
+    if (order.buyer_id !== buyer?.id) {
+      toast.error('Você não tem permissão para cancelar este pedido.')
+      return
+    }
     setCancelling(true)
     try {
       await updateOrderStatus(order.id, 'cancelled', undefined)
@@ -190,8 +196,8 @@ export default function OrderDetail() {
           </div>
         </div>
 
-        {/* Cancel button — conditional on pending status */}
-        {order.status === 'pending' && (
+        {/* Cancel button — conditional on pending status and ownership */}
+        {order.status === 'pending' && order.buyer_id === buyer?.id && (
           <button
             onClick={handleCancel}
             disabled={cancelling}
