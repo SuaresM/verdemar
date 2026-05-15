@@ -149,7 +149,7 @@ export default function OrderDetail() {
             <div>
               <p className="text-sm font-bold text-red-700 mb-0.5">Pedido recusado</p>
               <p className="text-sm text-red-600">
-                Motivo: {order.rejection_reason}
+                Motivo: {order.rejection_reason ?? 'Não informado'}
               </p>
             </div>
           </div>
