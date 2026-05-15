@@ -130,8 +130,6 @@ export default function OrderDetail() {
                 Pedido <span className="font-bold text-gray-700">#{order.id.slice(0, 8).toUpperCase()}</span>
               </p>
             </div>
-            {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
-            {/* @ts-expect-error size prop added in Plan 03-03 */}
             <OrderStatusBadge status={order.status} size="md" />
           </div>
           {order.delivery_time_preference && (
