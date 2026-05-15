@@ -30,7 +30,7 @@ export function Badge({ children, variant = 'primary', size = 'sm' }: BadgeProps
   )
 }
 
-export function OrderStatusBadge({ status }: { status: OrderStatus }) {
+export function OrderStatusBadge({ status, size = 'sm' }: { status: OrderStatus; size?: 'sm' | 'md' }) {
   const config: Record<OrderStatus, { label: string; variant: BadgeProps['variant'] }> = {
     pending: { label: 'Aguardando', variant: 'warning' },
     confirmed: { label: 'Confirmado', variant: 'info' },
@@ -42,7 +42,7 @@ export function OrderStatusBadge({ status }: { status: OrderStatus }) {
   }
 
   const { label, variant } = config[status]
-  return <Badge variant={variant}>{label}</Badge>
+  return <Badge variant={variant} size={size}>{label}</Badge>
 }
 
 export function CategoryBadge({ category }: { category: string }) {
