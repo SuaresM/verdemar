@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ShoppingCart, ChevronDown, ChevronUp, CheckCircle, AlertTriangle } from 'lucide-react'
+import { ShoppingCart, ChevronDown, ChevronUp, CheckCircle, AlertTriangle, CalendarClock } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCartStore } from '../../stores/cartStore'
 import { useAuthStore } from '../../stores/authStore'
@@ -451,54 +451,89 @@ export default function Cart() {
       )}
 
       {/* Success screen */}
-      {checkoutSuccess && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white px-6">
-          <div className="text-6xl mb-4">🎉</div>
-          <h2 className="text-2xl font-extrabold text-gray-900 mb-2 text-center">
-            Pedido registrado!
-          </h2>
-          <p className="text-gray-500 text-center text-sm mb-6">
-            Seu pedido foi salvo com sucesso. Agora você precisa{' '}
-            <span className="font-bold text-gray-700">enviar a mensagem no WhatsApp</span>{' '}
-            para que o fornecedor{' '}
-            <span className="font-bold text-gray-700">{checkoutSuccess.supplierName}</span>{' '}
-            receba e confirme seu pedido.
-          </p>
+      {checkoutSuccess && (() => {
+        const { whatsappUrl, supplierName, orderId, items, sectionTotal, deliveryTimePreference } = checkoutSuccess
+        return (
+          <div className="fixed inset-0 z-50 flex flex-col bg-white">
+            {/* Scrollable content area */}
+            <div className="flex-1 overflow-y-auto px-6 pt-8 pb-4">
+              {/* Header */}
+              <div className="text-center mb-6">
+                <div className="text-5xl mb-3">🎉</div>
+                <h2 className="text-2xl font-bold text-gray-900">Pedido registrado!</h2>
+                <p className="text-xs text-gray-400 mt-1">
+                  #{orderId.slice(0, 8).toUpperCase()}
+                </p>
+              </div>
 
-          <div className="w-full space-y-3">
-            <a
-              href={checkoutSuccess.whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => {
-                setWhatsappOpened(true)
-                if (checkoutSuccess) {
-                  markOrderWhatsAppSent(checkoutSuccess.orderId).catch(() => {})
-                }
-              }}
-              className="flex items-center justify-center gap-3 w-full bg-green-500 text-white font-bold py-4 rounded-2xl text-base shadow-lg active:scale-95 transition-transform"
-            >
-              <span className="text-xl">💬</span>
-              Enviar pedido no WhatsApp
-            </a>
-            <p className="text-xs text-center text-gray-400">
-              Toque no botão acima — isso abrirá o WhatsApp com a mensagem pronta.
-              Basta enviar!
-            </p>
-            <button
-              onClick={() => {
-                setCheckoutSuccess(null)
-                setWhatsappOpened(false)
-                navigate('/orders')
-              }}
-              disabled={!whatsappOpened}
-              className="w-full py-3 text-gray-400 text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              Ver meus pedidos
-            </button>
+              {/* Instruction */}
+              <p className="text-sm text-gray-500 text-center mb-6">
+                Envie a mensagem no WhatsApp para que o fornecedor{' '}
+                <span className="font-bold text-gray-700">{supplierName}</span>{' '}
+                receba e confirme seu pedido.
+              </p>
+
+              {/* Items summary */}
+              <div className="bg-gray-50 rounded-2xl p-4 mb-4">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Itens</p>
+                {items.map((item) => (
+                  <div key={item.product.id} className="flex justify-between text-sm py-1">
+                    <span className="text-gray-600">{item.quantity}x {item.product.name}</span>
+                    <span className="font-bold">{formatCurrency(item.subtotal)}</span>
+                  </div>
+                ))}
+                <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between font-bold">
+                  <span className="text-gray-700">Total</span>
+                  <span className="text-sm font-bold text-primary">{formatCurrency(sectionTotal)}</span>
+                </div>
+              </div>
+
+              {/* Delivery slot */}
+              {deliveryTimePreference && (
+                <div className="bg-primary/5 rounded-2xl p-4 mb-4 flex items-center gap-3">
+                  <CalendarClock size={18} className="text-primary flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-bold text-gray-500">Janela de entrega</p>
+                    <p className="text-sm font-bold text-gray-800">{deliveryTimePreference}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Fixed action area */}
+            <div className="px-6 pb-8 pt-4 space-y-3 border-t border-gray-100">
+              {/* Primary CTA — WhatsApp (unchanged behavior) */}
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => {
+                  setWhatsappOpened(true)
+                  markOrderWhatsAppSent(orderId).catch(() => {})
+                }}
+                className="flex items-center justify-center gap-3 w-full bg-green-500 text-white font-bold py-4 rounded-2xl text-sm shadow-lg active:scale-95 transition-transform"
+              >
+                <span className="text-xl">💬</span>
+                Enviar pedido no WhatsApp
+              </a>
+              <p className="text-xs text-center text-gray-400">
+                Toque no botão acima — isso abrirá o WhatsApp com a mensagem pronta. Basta enviar!
+              </p>
+              {/* Secondary CTA — always enabled (no WhatsApp gate per D-04) */}
+              <button
+                onClick={() => {
+                  setCheckoutSuccess(null)
+                  setWhatsappOpened(false)
+                  navigate(`/orders/${orderId}`)
+                }}
+                className="w-full py-3 border border-primary/30 text-primary font-bold rounded-2xl text-sm active:bg-primary/5 transition-colors"
+              >
+                Ver Pedido
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </div>
   )
 }
