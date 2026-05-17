@@ -22,6 +22,26 @@ const DAY_LABELS: Record<string, string> = {
 }
 const DAY_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
+/**
+ * Given all zones for a supplier, returns the unique set of delivery days
+ * sorted by DAY_ORDER. Each entry includes the zone it belongs to (for
+ * internal label construction) — this detail is NOT shown to the buyer.
+ */
+function getAvailableDays(zones: DeliveryZone[]): Array<{ day: string; zone: DeliveryZone }> {
+  const seen = new Set<string>()
+  const result: Array<{ day: string; zone: DeliveryZone }> = []
+  for (const zone of zones) {
+    for (const day of zone.days ?? []) {
+      if (!seen.has(day)) {
+        seen.add(day)
+        result.push({ day, zone })
+      }
+    }
+  }
+  result.sort((a, b) => DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day))
+  return result
+}
+
 function SectionMinOrderStatus({ section }: { section: CartSection }) {
   const minValue = section.supplier.min_order_value
   const minQty = section.supplier.min_order_quantity
@@ -172,8 +192,8 @@ export default function Cart() {
   } | null>(null)
   const [whatsappOpened, setWhatsappOpened] = useState(false)
   const [supplierZones, setSupplierZones] = useState<Record<string, DeliveryZone[]>>({})
-  const [selectedZoneId, setSelectedZoneId] = useState<Record<string, string>>({})
-  const [selectedDayId, setSelectedDayId] = useState<Record<string, string>>({})
+  // selectedDay maps supplierId -> selected day key (e.g. 'monday')
+  const [selectedDay, setSelectedDay] = useState<Record<string, string>>({})
 
   const totalAll = sections.reduce((sum, s) => sum + s.sectionTotal, 0)
 
@@ -196,14 +216,11 @@ export default function Cart() {
     setExpandedSections((prev) => ({ ...prev, [id]: !prev[id] }))
   }
 
-  const handleZoneChange = (supplierId: string, zoneId: string) => {
-    setSelectedZoneId((prev) => ({ ...prev, [supplierId]: zoneId }))
-    setSelectedDayId((prev) => { const n = { ...prev }; delete n[supplierId]; return n })
-    updateDeliveryTime(supplierId, '')
-  }
-
   const handleDayChange = (supplierId: string, day: string, zone: DeliveryZone) => {
-    setSelectedDayId((prev) => ({ ...prev, [supplierId]: day }))
+    setSelectedDay((prev) => ({ ...prev, [supplierId]: day }))
+    // Store the preference label for the supplier/order record.
+    // The hour window is included for the supplier's operational use but
+    // the buyer only sees the day name in the UI picker.
     const label = `${DAY_LABELS[day] ?? day} — ${zone.hours_start} às ${zone.hours_end}`
     updateDeliveryTime(supplierId, label)
   }
@@ -314,7 +331,8 @@ export default function Cart() {
           const isValid = isSectionValid(section)
           const zones = supplierZones[section.supplier.id]
           const hasNoZones = zones !== undefined && zones.length === 0
-          const activeZone = zones?.find((z) => z.id === selectedZoneId[section.supplier.id])
+          // Compute unique delivery days across all zones for this supplier
+          const availableDays = zones ? getAvailableDays(zones) : []
 
           return (
             <div key={section.supplier.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
@@ -371,53 +389,29 @@ export default function Cart() {
                     />
                   </div>
 
-                  {/* Delivery time — 2-step zone + day picker */}
+                  {/* Delivery day — single picker showing only available days */}
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">Horário preferencial de entrega</label>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">Dia preferencial de entrega</label>
                     {hasNoZones ? (
                       <p className="text-xs text-danger font-semibold">
-                        Fornecedor ainda não configurou horários de entrega
+                        Fornecedor ainda não configurou dias de entrega
                       </p>
                     ) : zones ? (
-                      <div className="space-y-2">
-                        {/* Step 1 — zone picker */}
-                        <select
-                          value={selectedZoneId[section.supplier.id] ?? ''}
-                          onChange={(e) => handleZoneChange(section.supplier.id, e.target.value)}
-                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none"
-                        >
-                          <option value="">Selecione a janela de entrega</option>
-                          {zones.map((z) => {
-                            const days = (z.days ?? [])
-                              .slice()
-                              .sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b))
-                              .map((d) => DAY_LABELS[d]?.slice(0, 3) ?? d)
-                              .join(', ')
-                            return (
-                              <option key={z.id} value={z.id}>
-                                {days} — {z.hours_start} às {z.hours_end}
-                              </option>
-                            )
-                          })}
-                        </select>
-
-                        {/* Step 2 — day picker (only after zone selected) */}
-                        {activeZone && (
-                          <select
-                            value={selectedDayId[section.supplier.id] ?? ''}
-                            onChange={(e) => handleDayChange(section.supplier.id, e.target.value, activeZone)}
-                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none"
-                          >
-                            <option value="">Selecione o dia</option>
-                            {(activeZone.days ?? [])
-                              .slice()
-                              .sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b))
-                              .map((d) => (
-                                <option key={d} value={d}>{DAY_LABELS[d] ?? d}</option>
-                              ))}
-                          </select>
-                        )}
-                      </div>
+                      <select
+                        value={selectedDay[section.supplier.id] ?? ''}
+                        onChange={(e) => {
+                          const day = e.target.value
+                          // Find the zone that contains this day
+                          const match = availableDays.find((d) => d.day === day)
+                          if (match) handleDayChange(section.supplier.id, day, match.zone)
+                        }}
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none"
+                      >
+                        <option value="">Selecione o dia de entrega</option>
+                        {availableDays.map(({ day }) => (
+                          <option key={day} value={day}>{DAY_LABELS[day] ?? day}</option>
+                        ))}
+                      </select>
                     ) : (
                       <select disabled className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl opacity-50">
                         <option>Carregando...</option>
@@ -496,12 +490,12 @@ export default function Cart() {
                 </div>
               </div>
 
-              {/* Delivery slot */}
+              {/* Delivery day */}
               {deliveryTimePreference && (
                 <div className="bg-primary/5 rounded-2xl p-4 mb-4 flex items-center gap-3">
                   <CalendarClock size={18} className="text-primary flex-shrink-0" />
                   <div>
-                    <p className="text-xs font-bold text-gray-500">Janela de entrega</p>
+                    <p className="text-xs font-bold text-gray-500">Dia de entrega</p>
                     <p className="text-sm font-bold text-gray-800">{deliveryTimePreference}</p>
                   </div>
                 </div>

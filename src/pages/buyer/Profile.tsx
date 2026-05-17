@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LogOut, MessageCircle, User, Building, MapPin, Phone, Clock, Edit2, Save, X, Lock } from 'lucide-react'
+import { LogOut, MessageCircle, Building, MapPin, Edit2, Save, X, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthStore } from '../../stores/authStore'
 import { updateBuyer } from '../../services/supabase'
@@ -9,16 +9,6 @@ import { openSupportWhatsApp } from '../../services/whatsapp'
 import { formatCNPJ, formatPhone } from '../../utils'
 import { supabase } from '../../lib/supabaseClient'
 import { CITIES } from '../../constants/cities'
-
-const DF_RAS = [
-  'Asa Sul', 'Asa Norte', 'Gama', 'Taguatinga', 'Brazlândia', 'Sobradinho',
-  'Planaltina', 'Paranoá', 'Núcleo Bandeirante', 'Ceilândia', 'Guará',
-  'Cruzeiro', 'Samambaia', 'Santa Maria', 'São Sebastião', 'Recanto das Emas',
-  'Lago Sul', 'Lago Norte', 'Candangolândia', 'Riacho Fundo', 'Águas Claras',
-  'Riacho Fundo II', 'SCIA/Estrutural', 'Sobradinho II', 'Jardim Botânico',
-  'Itapoã', 'SIA', 'Vicente Pires', 'Fercal', 'Sol Nascente/Pôr do Sol',
-  'Arniqueira', 'Arapoanga', 'Água Quente',
-]
 
 export default function Profile() {
   const { buyer, profile, signOut, setBuyer } = useAuthStore()
@@ -95,15 +85,18 @@ export default function Profile() {
   const Input = ({
     label,
     field,
+    placeholder,
   }: {
     label: string
     field: keyof typeof form
+    placeholder?: string
   }) => (
     <div>
       <label className="block text-xs font-semibold text-gray-500 mb-1">{label}</label>
       <input
         value={form[field]}
         onChange={(e) => setForm((prev) => ({ ...prev, [field]: e.target.value }))}
+        placeholder={placeholder}
         className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30"
       />
     </div>
@@ -183,21 +176,15 @@ export default function Profile() {
                 <Input label="Número" field="address_number" />
                 <Input label="Complemento" field="address_complement" />
               </div>
+              {/* Bairro: free-text for the specific sub-neighborhood within the RA */}
+              <Input
+                label="Bairro (opcional)"
+                field="address_neighborhood"
+                placeholder="Ex: Asa Sul, Setor Comercial..."
+              />
+              {/* address_city stores the Região Administrativa — delivery matching uses this field */}
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Bairro</label>
-                <select
-                  value={form.address_neighborhood}
-                  onChange={(e) => setForm((prev) => ({ ...prev, address_neighborhood: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
-                >
-                  <option value="">Selecione o bairro...</option>
-                  {DF_RAS.map((ra) => (
-                    <option key={ra} value={ra}>{ra}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Cidade</label>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Região Administrativa (RA)</label>
                 <select
                   value={form.address_city}
                   onChange={(e) => {
@@ -206,7 +193,7 @@ export default function Profile() {
                   }}
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
                 >
-                  <option value="">Selecione a cidade...</option>
+                  <option value="">Selecione a RA...</option>
                   {CITIES.map((c) => (
                     <option key={`${c.city}-${c.state}`} value={c.city}>{c.city} — {c.state}</option>
                   ))}
@@ -224,7 +211,10 @@ export default function Profile() {
           ) : (
             <div className="space-y-2 text-sm text-gray-700">
               <p>{buyer?.address_street}, {buyer?.address_number}{buyer?.address_complement ? `, ${buyer.address_complement}` : ''}</p>
-              <p>{buyer?.address_neighborhood} - {buyer?.address_city}/{buyer?.address_state}</p>
+              <p>
+                {buyer?.address_neighborhood ? `${buyer.address_neighborhood} — ` : ''}
+                {buyer?.address_city}/{buyer?.address_state}
+              </p>
               <p>CEP: {buyer?.address_zip}</p>
             </div>
           )}

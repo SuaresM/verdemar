@@ -32,8 +32,9 @@ const buyerSchema = baseSchema.extend({
   address_street: z.string().min(2, 'Rua obrigatória'),
   address_number: z.string().min(1, 'Número obrigatório'),
   address_complement: z.string().optional(),
-  address_neighborhood: z.string().min(2, 'Bairro obrigatório'),
-  address_city: z.string().min(2, 'Cidade obrigatória'),
+  // address_neighborhood is optional — DF buyers may not have a sub-bairro distinct from the RA
+  address_neighborhood: z.string().optional(),
+  address_city: z.string().min(2, 'Região Administrativa obrigatória'),
   address_state: z.string().min(2, 'Estado obrigatório'),
   address_zip: z.string().min(8, 'CEP inválido'),
   business_hours: z.string().min(2, 'Horário obrigatório'),
@@ -95,7 +96,7 @@ export default function Register() {
               address_street: data.address_street,
               address_number: data.address_number,
               address_complement: data.address_complement || null,
-              address_neighborhood: data.address_neighborhood,
+              address_neighborhood: data.address_neighborhood || '',
               address_city: data.address_city,
               address_state: data.address_state,
               address_zip: data.address_zip.replace(/\D/g, ''),
@@ -274,10 +275,10 @@ export default function Register() {
                 <InputField label="Número" required placeholder="123" error={buyerForm.formState.errors.address_number?.message} {...buyerForm.register('address_number')} />
                 <InputField label="Complemento" placeholder="Apto 1" error={buyerForm.formState.errors.address_complement?.message} {...buyerForm.register('address_complement')} />
               </div>
-              <InputField label="Bairro" required placeholder="Centro" error={buyerForm.formState.errors.address_neighborhood?.message} {...buyerForm.register('address_neighborhood')} />
+              {/* RA/city selection — delivery zone matching is based on this field */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Cidade <span className="text-danger">*</span>
+                  Região Administrativa / Cidade <span className="text-danger">*</span>
                 </label>
                 <CityCombobox
                   strict
@@ -288,7 +289,15 @@ export default function Register() {
                   }}
                   error={buyerForm.formState.errors.address_city?.message}
                 />
+                <p className="text-xs text-gray-400 mt-1">No DF, selecione sua Região Administrativa (ex: Taguatinga, Ceilândia...)</p>
               </div>
+              {/* Neighborhood is optional — specific sub-bairro within the RA */}
+              <InputField
+                label="Bairro (opcional)"
+                placeholder="Ex: Setor Sul, Vila São José..."
+                error={buyerForm.formState.errors.address_neighborhood?.message}
+                {...buyerForm.register('address_neighborhood')}
+              />
             </div>
 
             <button
