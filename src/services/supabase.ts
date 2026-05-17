@@ -206,7 +206,31 @@ export async function createOrder(
   order: Omit<Order, 'id' | 'created_at' | 'updated_at' | 'items' | 'supplier' | 'buyer'>,
   items: Omit<OrderItem, 'id' | 'order_id' | 'product'>[]
 ): Promise<Order> {
-  return apiClient.post<Order>('/orders', { order, items })
+  // Write directly to Supabase — bypasses Vercel serverless function which was
+  // unreachable from the client due to network hang on POST /api/orders.
+  // RLS policies enforce buyer_id = auth.uid() for INSERT on both tables.
+  const { data: orderData, error: orderError } = await supabase
+    .from('orders')
+    .insert(order)
+    .select()
+    .single()
+  if (orderError) throw new Error(orderError.message)
+
+  const orderItems = items.map((item) => ({ ...item, order_id: orderData.id }))
+  const { error: itemsError } = await supabase.from('order_items').insert(orderItems)
+  if (itemsError) throw new Error(itemsError.message)
+
+  // Fire-and-forget: increment total_sold per product (non-critical, fails silently)
+  for (const item of items) {
+    if (item.product_id && item.quantity > 0) {
+      supabase.rpc('increment_product_sold', { p_id: item.product_id, p_amount: item.quantity }).catch(() => {})
+    }
+  }
+  if (order.supplier_id && orderData.total_value) {
+    supabase.rpc('increment_supplier_sales', { p_id: order.supplier_id, p_amount: orderData.total_value }).catch(() => {})
+  }
+
+  return orderData as Order
 }
 
 export async function getOrdersByBuyer(buyerId: string, limit = 100): Promise<Order[]> {
