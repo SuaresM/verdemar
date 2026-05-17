@@ -223,11 +223,11 @@ export async function createOrder(
   // Fire-and-forget: increment total_sold per product (non-critical, fails silently)
   for (const item of items) {
     if (item.product_id && item.quantity > 0) {
-      supabase.rpc('increment_product_sold', { p_id: item.product_id, p_amount: item.quantity }).catch(() => {})
+      Promise.resolve(supabase.rpc('increment_product_sold', { p_id: item.product_id, p_amount: item.quantity })).catch(() => {})
     }
   }
   if (order.supplier_id && orderData.total_value) {
-    supabase.rpc('increment_supplier_sales', { p_id: order.supplier_id, p_amount: orderData.total_value }).catch(() => {})
+    Promise.resolve(supabase.rpc('increment_supplier_sales', { p_id: order.supplier_id, p_amount: orderData.total_value })).catch(() => {})
   }
 
   return orderData as Order
