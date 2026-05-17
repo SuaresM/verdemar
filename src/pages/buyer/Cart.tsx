@@ -164,6 +164,11 @@ function CheckoutDrawer({ section, onConfirm, onClose, loading }: CheckoutDrawer
   )
 }
 
+/**
+ * Returns true when the supplier has zones configured and NONE of them
+ * match the buyer's city. A supplier with no zones configured is not
+ * considered a mismatch (zones not set up yet).
+ */
 function hasCityMismatch(
   supplierId: string,
   buyerCity: string | undefined,
@@ -188,12 +193,14 @@ export default function Cart() {
     orderId: string
     items: CartSection['items']
     sectionTotal: number
-    deliveryTimePreference: string | null
+    // Buyer-facing label: only the day name, no zone hours
+    deliveryDayLabel: string | null
   } | null>(null)
   const [whatsappOpened, setWhatsappOpened] = useState(false)
   const [supplierZones, setSupplierZones] = useState<Record<string, DeliveryZone[]>>({})
-  // selectedDay maps supplierId -> selected day key (e.g. 'monday')
-  const [selectedDay, setSelectedDay] = useState<Record<string, string>>({})
+  // selectedDay maps supplierId -> { day key, zone } so we can reconstruct the
+  // full internal label at checkout time without storing zone details in the cart.
+  const [selectedDay, setSelectedDay] = useState<Record<string, { day: string; zone: DeliveryZone }>>({})
 
   const totalAll = sections.reduce((sum, s) => sum + s.sectionTotal, 0)
 
@@ -217,12 +224,11 @@ export default function Cart() {
   }
 
   const handleDayChange = (supplierId: string, day: string, zone: DeliveryZone) => {
-    setSelectedDay((prev) => ({ ...prev, [supplierId]: day }))
-    // Store the preference label for the supplier/order record.
-    // The hour window is included for the supplier's operational use but
-    // the buyer only sees the day name in the UI picker.
-    const label = `${DAY_LABELS[day] ?? day} — ${zone.hours_start} às ${zone.hours_end}`
-    updateDeliveryTime(supplierId, label)
+    setSelectedDay((prev) => ({ ...prev, [supplierId]: { day, zone } }))
+    // Store only the day name as the buyer-facing preference.
+    // The full internal label (with zone hours) is built at checkout time for
+    // the supplier's operational use — the buyer never sees the hour window.
+    updateDeliveryTime(supplierId, DAY_LABELS[day] ?? day)
   }
 
   const handleCheckout = async () => {
@@ -230,6 +236,14 @@ export default function Cart() {
       toast.error('Sessão expirada. Faça login novamente.')
       return
     }
+
+    // Issue 2 guard: block order if supplier doesn't deliver to buyer's city.
+    if (hasCityMismatch(checkoutSection.supplier.id, buyer.address_city, supplierZones)) {
+      toast.error(`Este fornecedor não entrega em ${buyer.address_city}. Escolha outro fornecedor.`)
+      setCheckoutSection(null)
+      return
+    }
+
     setCheckoutLoading(true)
     try {
       const itemsData = checkoutSection.items.map((item) => ({
@@ -245,6 +259,13 @@ export default function Cart() {
         subtotal: item.subtotal,
       }))
 
+      // Build the full internal delivery label (day + zone hours) for the supplier.
+      // This goes into the order record and the WhatsApp message — NOT shown to the buyer.
+      const sel = selectedDay[checkoutSection.supplier.id]
+      const internalDeliveryLabel = sel
+        ? `${DAY_LABELS[sel.day] ?? sel.day} — ${sel.zone.hours_start} às ${sel.zone.hours_end}`
+        : (checkoutSection.deliveryTimePreference || null)
+
       const order = await createOrder(
         {
           buyer_id: buyer.id,
@@ -252,7 +273,7 @@ export default function Cart() {
           status: 'pending',
           total_value: checkoutSection.sectionTotal,
           notes: checkoutSection.notes,
-          delivery_time_preference: checkoutSection.deliveryTimePreference,
+          delivery_time_preference: internalDeliveryLabel ?? undefined,
           payment_method: 'cash_on_delivery',
           whatsapp_sent: false,
         },
@@ -266,12 +287,12 @@ export default function Cart() {
       }))
 
       const message = formatWhatsAppMessage(
-        { ...order, notes: checkoutSection.notes, delivery_time_preference: checkoutSection.deliveryTimePreference } as import('../../types').Order,
+        { ...order, notes: checkoutSection.notes, delivery_time_preference: internalDeliveryLabel ?? undefined } as import('../../types').Order,
         buyer,
         orderItems as import('../../types').OrderItem[]
       )
 
-      const rawDigits = checkoutSection.supplier.whatsapp.replace(/\D/g, '')
+      const rawDigits = (checkoutSection.supplier.whatsapp ?? '').replace(/\D/g, '')
       if (!/^\d{10,13}$/.test(rawDigits)) {
         toast.error('Fornecedor sem número de WhatsApp válido. Contate o suporte.')
         setCheckoutLoading(false)
@@ -279,9 +300,11 @@ export default function Cart() {
       }
       const whatsappUrl = `https://wa.me/${rawDigits}?text=${message}`
 
+      // Buyer-facing label: only the day name (no zone hours)
+      const buyerDayLabel = sel ? (DAY_LABELS[sel.day] ?? sel.day) : null
+
       const capturedItems = checkoutSection.items
       const capturedTotal = checkoutSection.sectionTotal
-      const capturedSlot = checkoutSection.deliveryTimePreference || null
       clearSection(checkoutSection.supplier.id)
       setCheckoutSection(null)
       setCheckoutSuccess({
@@ -290,7 +313,7 @@ export default function Cart() {
         orderId: order.id,
         items: capturedItems,
         sectionTotal: capturedTotal,
-        deliveryTimePreference: capturedSlot,
+        deliveryDayLabel: buyerDayLabel,
       })
     } catch (err) {
       toast.error('Erro ao finalizar pedido. Tente novamente.')
@@ -331,8 +354,10 @@ export default function Cart() {
           const isValid = isSectionValid(section)
           const zones = supplierZones[section.supplier.id]
           const hasNoZones = zones !== undefined && zones.length === 0
+          const cityMismatch = hasCityMismatch(section.supplier.id, buyer?.address_city, supplierZones)
           // Compute unique delivery days across all zones for this supplier
           const availableDays = zones ? getAvailableDays(zones) : []
+          const currentDayKey = selectedDay[section.supplier.id]?.day ?? ''
 
           return (
             <div key={section.supplier.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
@@ -362,12 +387,12 @@ export default function Cart() {
                     ))}
                   </div>
 
-                  {/* City delivery warning */}
-                  {hasCityMismatch(section.supplier.id, buyer?.address_city, supplierZones) && (
-                    <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-xl">
-                      <AlertTriangle size={14} className="mt-0.5 flex-shrink-0 text-amber-600" />
-                      <p className="text-xs text-amber-700 font-semibold">
-                        Este fornecedor pode não entregar em {buyer?.address_city}. Confirme antes de finalizar.
+                  {/* City delivery warning — shown when zones loaded and city doesn't match */}
+                  {cityMismatch && (
+                    <div className="flex items-start gap-2 p-3 bg-red-50 rounded-xl border border-red-200">
+                      <AlertTriangle size={14} className="mt-0.5 flex-shrink-0 text-red-600" />
+                      <p className="text-xs text-red-700 font-semibold">
+                        Este fornecedor não entrega em {buyer?.address_city}. Remova os itens ou altere seu endereço.
                       </p>
                     </div>
                   )}
@@ -389,7 +414,7 @@ export default function Cart() {
                     />
                   </div>
 
-                  {/* Delivery day — single picker showing only available days */}
+                  {/* Delivery day — single picker showing only day names (no zone/window details) */}
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 mb-1">Dia preferencial de entrega</label>
                     {hasNoZones ? (
@@ -398,10 +423,9 @@ export default function Cart() {
                       </p>
                     ) : zones ? (
                       <select
-                        value={selectedDay[section.supplier.id] ?? ''}
+                        value={currentDayKey}
                         onChange={(e) => {
                           const day = e.target.value
-                          // Find the zone that contains this day
                           const match = availableDays.find((d) => d.day === day)
                           if (match) handleDayChange(section.supplier.id, day, match.zone)
                         }}
@@ -419,13 +443,15 @@ export default function Cart() {
                     )}
                   </div>
 
-                  {/* Checkout button */}
+                  {/* Checkout button — also blocked when city doesn't match */}
                   <button
                     onClick={() => setCheckoutSection(section)}
-                    disabled={!isValid || zones === undefined || hasNoZones || !section.deliveryTimePreference}
+                    disabled={!isValid || zones === undefined || hasNoZones || !section.deliveryTimePreference || cityMismatch}
                     className="w-full bg-primary text-white font-bold py-3 rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed text-sm"
                   >
-                    {getCheckoutLabel(section)}
+                    {cityMismatch
+                      ? `Fornecedor não entrega em ${buyer?.address_city}`
+                      : getCheckoutLabel(section)}
                   </button>
                 </div>
               )}
@@ -454,7 +480,7 @@ export default function Cart() {
 
       {/* Success screen */}
       {checkoutSuccess && (() => {
-        const { whatsappUrl, supplierName, orderId, items, sectionTotal, deliveryTimePreference } = checkoutSuccess
+        const { whatsappUrl, supplierName, orderId, items, sectionTotal, deliveryDayLabel } = checkoutSuccess
         return (
           <div className="fixed inset-0 z-50 flex flex-col bg-white">
             {/* Scrollable content area */}
@@ -490,13 +516,13 @@ export default function Cart() {
                 </div>
               </div>
 
-              {/* Delivery day */}
-              {deliveryTimePreference && (
+              {/* Delivery day — shows only the day name, no zone hours */}
+              {deliveryDayLabel && (
                 <div className="bg-primary/5 rounded-2xl p-4 mb-4 flex items-center gap-3">
                   <CalendarClock size={18} className="text-primary flex-shrink-0" />
                   <div>
                     <p className="text-xs font-bold text-gray-500">Dia de entrega</p>
-                    <p className="text-sm font-bold text-gray-800">{deliveryTimePreference}</p>
+                    <p className="text-sm font-bold text-gray-800">{deliveryDayLabel}</p>
                   </div>
                 </div>
               )}

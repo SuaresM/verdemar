@@ -12,7 +12,8 @@ export function calculatePricePerKg(boxPrice: number, boxWeightKg: number): numb
   return boxPrice / boxWeightKg
 }
 
-export function formatCNPJ(cnpj: string): string {
+export function formatCNPJ(cnpj: string | null | undefined): string {
+  if (!cnpj) return ''
   const digits = cnpj.replace(/\D/g, '')
   return digits.replace(
     /^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,
@@ -20,7 +21,8 @@ export function formatCNPJ(cnpj: string): string {
   )
 }
 
-export function formatPhone(phone: string): string {
+export function formatPhone(phone: string | null | undefined): string {
+  if (!phone) return ''
   const digits = phone.replace(/\D/g, '')
   if (digits.length === 11) {
     return digits.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3')
@@ -60,9 +62,11 @@ export function formatWhatsAppMessage(order: Order, buyer: Buyer, items: OrderIt
     })
     .join('\n')
 
+  // Build address — guard neighborhood (optional field) to avoid ", ," when empty
+  const neighborhoodPart = buyer.address_neighborhood ? ` - ${buyer.address_neighborhood}` : ''
   const address = `${buyer.address_street}, ${buyer.address_number}${
     buyer.address_complement ? `, ${buyer.address_complement}` : ''
-  } - ${buyer.address_neighborhood}, ${buyer.address_city}/${buyer.address_state} - CEP: ${buyer.address_zip}`
+  }${neighborhoodPart}, ${buyer.address_city}/${buyer.address_state} - CEP: ${buyer.address_zip}`
 
   return encodeURIComponent(
     `🛒 NOVO PEDIDO - Rota Verde
