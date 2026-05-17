@@ -29,7 +29,12 @@ app.post('/orders', requireAuth, async (c) => {
     idempotency_key?: string
   }>()
 
-  if (order.buyer_id !== userId) return c.json({ error: 'Forbidden' }, 403)
+  console.log('[POST /orders] userId:', userId, 'buyer_id:', order.buyer_id, 'keys:', Object.keys(order))
+
+  if (order.buyer_id !== userId) {
+    console.log('[POST /orders] FORBIDDEN — userId !== buyer_id')
+    return c.json({ error: 'Forbidden' }, 403)
+  }
 
   // eslint-disable-next-line prefer-const
   let orderData: Record<string, unknown> | null = null
@@ -60,7 +65,10 @@ app.post('/orders', requireAuth, async (c) => {
     // Normal path: plain insert — no conflict column means upsert partial-index
     // inference would fail on PostgreSQL with a partial unique index.
     const res = await adminSupabase.from('orders').insert(order).select().single()
-    if (res.error) return c.json({ error: res.error.message }, 400)
+    if (res.error) {
+      console.log('[POST /orders] INSERT ERROR:', res.error.message, 'code:', res.error.code, 'details:', res.error.details)
+      return c.json({ error: res.error.message }, 400)
+    }
     orderData = res.data
   }
 
