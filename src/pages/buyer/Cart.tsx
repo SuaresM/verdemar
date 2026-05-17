@@ -336,7 +336,8 @@ export default function Cart() {
         deliveryDayLabel: buyerDayLabel,
       })
     } catch (err) {
-      toast.error('Erro ao finalizar pedido. Tente novamente.')
+      const detail = err instanceof Error ? err.message : String(err)
+      toast.error(`Erro: ${detail}`)
       console.error(err)
     } finally {
       setCheckoutLoading(false)
