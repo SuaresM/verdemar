@@ -208,7 +208,7 @@ export default function Cart() {
   const [checkoutSection, setCheckoutSection] = useState<CartSection | null>(null)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [checkoutSuccess, setCheckoutSuccess] = useState<{
-    whatsappUrl: string
+    whatsappUrl: string | null
     supplierName: string
     orderId: string
     items: CartSection['items']
@@ -313,12 +313,9 @@ export default function Cart() {
       )
 
       const rawDigits = (checkoutSection.supplier.whatsapp ?? '').replace(/\D/g, '')
-      if (!/^\d{10,13}$/.test(rawDigits)) {
-        toast.error('Fornecedor sem número de WhatsApp válido. Contate o suporte.')
-        setCheckoutLoading(false)
-        return
-      }
-      const whatsappUrl = `https://wa.me/${rawDigits}?text=${message}`
+      const whatsappUrl = /^\d{10,13}$/.test(rawDigits)
+        ? `https://wa.me/${rawDigits}?text=${message}`
+        : null
 
       // Buyer-facing label: day name + date (e.g. "Segunda, 19 mai"); no zone hours
       const buyerDayLabel = sel ? formatDayOption(sel.day) : null
@@ -551,23 +548,31 @@ export default function Cart() {
 
             {/* Fixed action area */}
             <div className="px-6 pb-8 pt-4 space-y-3 border-t border-gray-100">
-              {/* Primary CTA — WhatsApp (unchanged behavior) */}
-              <a
-                href={whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => {
-                  setWhatsappOpened(true)
-                  markOrderWhatsAppSent(orderId).catch(() => {})
-                }}
-                className="flex items-center justify-center gap-3 w-full bg-green-500 text-white font-bold py-4 rounded-2xl text-sm shadow-lg active:scale-95 transition-transform"
-              >
-                <span className="text-xl">💬</span>
-                Enviar pedido no WhatsApp
-              </a>
-              <p className="text-xs text-center text-gray-400">
-                Toque no botão acima — isso abrirá o WhatsApp com a mensagem pronta. Basta enviar!
-              </p>
+              {/* Primary CTA — WhatsApp */}
+              {whatsappUrl ? (
+                <>
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => {
+                      setWhatsappOpened(true)
+                      markOrderWhatsAppSent(orderId).catch(() => {})
+                    }}
+                    className="flex items-center justify-center gap-3 w-full bg-green-500 text-white font-bold py-4 rounded-2xl text-sm shadow-lg active:scale-95 transition-transform"
+                  >
+                    <span className="text-xl">💬</span>
+                    Enviar pedido no WhatsApp
+                  </a>
+                  <p className="text-xs text-center text-gray-400">
+                    Toque no botão acima — isso abrirá o WhatsApp com a mensagem pronta. Basta enviar!
+                  </p>
+                </>
+              ) : (
+                <p className="text-xs text-center text-amber-600 bg-amber-50 rounded-xl py-3 px-4">
+                  Fornecedor sem WhatsApp cadastrado. Aguarde a confirmação pelo app.
+                </p>
+              )}
               {/* Secondary CTA — always enabled (no WhatsApp gate per D-04) */}
               <button
                 onClick={() => {
