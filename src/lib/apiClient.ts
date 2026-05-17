@@ -1,19 +1,35 @@
 import { supabase } from './supabaseClient'
 
+const REQUEST_TIMEOUT_MS = 30_000
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const {
     data: { session },
   } = await supabase.auth.getSession()
   const token = session?.access_token
 
-  const res = await fetch(`/api${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  })
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+
+  let res: Response
+  try {
+    res = await fetch(`/api${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+    })
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error('Tempo limite da requisição esgotado. Verifique sua conexão e tente novamente.')
+    }
+    throw err
+  } finally {
+    clearTimeout(timeoutId)
+  }
 
   if (!res.ok) {
     const body = await res.text()

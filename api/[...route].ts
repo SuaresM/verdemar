@@ -7,12 +7,21 @@ import { requireAuth, requireAdmin, type AuthVariables } from './_lib/auth.js'
 
 export const config = { runtime: 'nodejs' }
 
-if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
-  webpush.setVapidDetails(
-    'mailto:' + (process.env.VAPID_EMAIL ?? 'admin@example.com'),
-    process.env.VAPID_PUBLIC_KEY,
-    process.env.VAPID_PRIVATE_KEY,
-  )
+// Guard module-level VAPID init inside try/catch so that a bad key format
+// (or any other webpush.setVapidDetails() throw) never crashes the module
+// and blocks ALL requests to the serverless function.
+let vapidReady = false
+try {
+  if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+    webpush.setVapidDetails(
+      'mailto:' + (process.env.VAPID_EMAIL ?? 'admin@example.com'),
+      process.env.VAPID_PUBLIC_KEY,
+      process.env.VAPID_PRIVATE_KEY,
+    )
+    vapidReady = true
+  }
+} catch (err) {
+  console.error('[webpush] setVapidDetails failed — push notifications disabled:', err)
 }
 
 const app = new Hono<{ Variables: AuthVariables }>().basePath('/api')
@@ -421,6 +430,9 @@ app.delete('/admin/suppliers/:id', requireAuth, requireAdmin, async (c) => {
 // ── INTERNAL ─────────────────────────────────────────────────────────────────
 
 async function sendPush(userId: string, payload: object): Promise<void> {
+  // If VAPID init failed at module load, skip push silently — never block a request.
+  if (!vapidReady) return
+
   const { data } = await adminSupabase
     .from('push_subscriptions')
     .select('id, subscription')
