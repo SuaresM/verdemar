@@ -21,6 +21,26 @@ const DAY_LABELS: Record<string, string> = {
   sunday: 'Domingo',
 }
 const DAY_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+const MONTHS_SHORT = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
+
+function nextOccurrenceDate(dayKey: string): Date {
+  const dayIndex = DAY_ORDER.indexOf(dayKey)
+  // DAY_ORDER: 0=monday … 6=sunday; JS getDay: 0=sunday, 1=monday … 6=saturday
+  const targetJsDay = dayIndex === 6 ? 0 : dayIndex + 1
+  const today = new Date()
+  const todayJsDay = today.getDay()
+  let daysUntil = targetJsDay - todayJsDay
+  if (daysUntil <= 0) daysUntil += 7 // always the NEXT occurrence, not today
+  const result = new Date(today)
+  result.setDate(today.getDate() + daysUntil)
+  return result
+}
+
+function formatDayOption(dayKey: string): string {
+  const label = DAY_LABELS[dayKey] ?? dayKey
+  const d = nextOccurrenceDate(dayKey)
+  return `${label}, ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`
+}
 
 /**
  * Given all zones for a supplier, returns the unique set of delivery days
@@ -225,10 +245,10 @@ export default function Cart() {
 
   const handleDayChange = (supplierId: string, day: string, zone: DeliveryZone) => {
     setSelectedDay((prev) => ({ ...prev, [supplierId]: { day, zone } }))
-    // Store only the day name as the buyer-facing preference.
+    // Store day + date as the buyer-facing preference (e.g. "Segunda, 19 mai").
     // The full internal label (with zone hours) is built at checkout time for
     // the supplier's operational use — the buyer never sees the hour window.
-    updateDeliveryTime(supplierId, DAY_LABELS[day] ?? day)
+    updateDeliveryTime(supplierId, formatDayOption(day))
   }
 
   const handleCheckout = async () => {
@@ -300,8 +320,8 @@ export default function Cart() {
       }
       const whatsappUrl = `https://wa.me/${rawDigits}?text=${message}`
 
-      // Buyer-facing label: only the day name (no zone hours)
-      const buyerDayLabel = sel ? (DAY_LABELS[sel.day] ?? sel.day) : null
+      // Buyer-facing label: day name + date (e.g. "Segunda, 19 mai"); no zone hours
+      const buyerDayLabel = sel ? formatDayOption(sel.day) : null
 
       const capturedItems = checkoutSection.items
       const capturedTotal = checkoutSection.sectionTotal
@@ -433,7 +453,7 @@ export default function Cart() {
                       >
                         <option value="">Selecione o dia de entrega</option>
                         {availableDays.map(({ day }) => (
-                          <option key={day} value={day}>{DAY_LABELS[day] ?? day}</option>
+                          <option key={day} value={day}>{formatDayOption(day)}</option>
                         ))}
                       </select>
                     ) : (

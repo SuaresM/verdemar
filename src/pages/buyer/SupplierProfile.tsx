@@ -90,14 +90,38 @@ export default function SupplierProfile() {
         </div>
 
         <div className="flex flex-wrap gap-3 mt-3">
-          {deliveryZones.length > 0 && (
-            <div className="flex items-center gap-1 bg-gray-50 rounded-xl px-3 py-1.5">
-              <Truck size={13} className="text-primary" />
-              <span className="text-xs font-semibold text-gray-700">
-                Entrega em {deliveryZones.length} {deliveryZones.length === 1 ? 'cidade' : 'cidades'}
-              </span>
-            </div>
-          )}
+          {deliveryZones.length > 0 && (() => {
+            const buyerCity = buyer?.address_city
+            const deliversToMe = buyerCity ? deliveryZones.some((z) => z.city === buyerCity) : null
+            if (buyerCity && deliversToMe === true) {
+              return (
+                <div className="flex items-center gap-1 bg-primary/10 rounded-xl px-3 py-1.5">
+                  <Truck size={13} className="text-primary" />
+                  <span className="text-xs font-semibold text-primary">
+                    Entrega em {buyerCity} ✓
+                  </span>
+                </div>
+              )
+            }
+            if (buyerCity && deliversToMe === false) {
+              return (
+                <div className="flex items-center gap-1 bg-red-50 rounded-xl px-3 py-1.5">
+                  <Truck size={13} className="text-red-500" />
+                  <span className="text-xs font-semibold text-red-600">
+                    Não entrega em {buyerCity}
+                  </span>
+                </div>
+              )
+            }
+            return (
+              <div className="flex items-center gap-1 bg-gray-50 rounded-xl px-3 py-1.5">
+                <Truck size={13} className="text-primary" />
+                <span className="text-xs font-semibold text-gray-700">
+                  Entrega em {deliveryZones.length} {deliveryZones.length === 1 ? 'cidade' : 'cidades'}
+                </span>
+              </div>
+            )
+          })()}
           {(supplier.min_order_value || supplier.min_order_quantity) && (
             <div className="bg-accent/10 rounded-xl px-3 py-1.5">
               <span className="text-xs font-semibold text-accent">

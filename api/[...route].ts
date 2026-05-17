@@ -31,32 +31,38 @@ app.post('/orders', requireAuth, async (c) => {
 
   if (order.buyer_id !== userId) return c.json({ error: 'Forbidden' }, 403)
 
-  // idempotent upsert — duplicate idempotency_key returns existing row
-  const orderPayload = idempotency_key
-    ? { ...order, idempotency_key }
-    : order
+  // eslint-disable-next-line prefer-const
+  let orderData: Record<string, unknown> | null = null
 
-  let { data: orderData, error: orderError } = await adminSupabase
-    .from('orders')
-    .upsert(orderPayload, {
-      onConflict: 'idempotency_key',
-      ignoreDuplicates: true,
-    })
-    .select()
-    .single()
-
-  // When ignoreDuplicates:true suppresses the insert (duplicate key), PostgREST
-  // returns no row. Fall back to a select by idempotency_key to get the existing row.
-  if (!orderData && idempotency_key) {
-    const { data: existing, error: selectError } = await adminSupabase
+  if (idempotency_key) {
+    // Idempotent path: upsert so duplicate submissions return the existing row.
+    // The partial unique index (WHERE idempotency_key IS NOT NULL) only applies
+    // when idempotency_key is present, so the upsert conflict resolution is safe.
+    const res = await adminSupabase
       .from('orders')
+      .upsert({ ...order, idempotency_key }, { onConflict: 'idempotency_key', ignoreDuplicates: true })
       .select()
-      .eq('idempotency_key', idempotency_key)
       .single()
-    if (selectError) return c.json({ error: selectError.message }, 400)
-    orderData = existing
+
+    orderData = res.data
+    if (!orderData) {
+      // ignoreDuplicates suppressed the insert — fetch the existing row
+      const { data: existing, error: selectError } = await adminSupabase
+        .from('orders')
+        .select()
+        .eq('idempotency_key', idempotency_key)
+        .single()
+      if (selectError) return c.json({ error: selectError.message }, 400)
+      orderData = existing
+    }
+    if (!orderData) return c.json({ error: 'Falha ao criar pedido' }, 400)
+  } else {
+    // Normal path: plain insert — no conflict column means upsert partial-index
+    // inference would fail on PostgreSQL with a partial unique index.
+    const res = await adminSupabase.from('orders').insert(order).select().single()
+    if (res.error) return c.json({ error: res.error.message }, 400)
+    orderData = res.data
   }
-  if (orderError && !orderData) return c.json({ error: orderError.message }, 400)
 
   // Guard: skip order_items insert if this is a retry (items already exist for this order).
   const { count: existingItemsCount } = await adminSupabase

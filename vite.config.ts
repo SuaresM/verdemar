@@ -56,4 +56,15 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    // Proxy /api/* to Vercel production so local dev can reach API functions
+    // without needing server-side env vars (SUPABASE_SERVICE_ROLE_KEY) locally.
+    proxy: {
+      '/api': {
+        target: 'https://verdemar-git-main-juans-projects-b922bb82.vercel.app',
+        changeOrigin: true,
+        secure: true,
+      },
+    },
+  },
 })
